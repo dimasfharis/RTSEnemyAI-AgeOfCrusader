@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a0839b8fd33649042bb441a3ff195c4c, type: 3}
+  m_Name: SwordmanUnitInfoSO
+  m_EditorClassIdentifier: 
+  unitPrefab: {fileID: 3092431008100835616, guid: f82a6a7797bafe048bd5411678774562, type: 3}
+  unitType: 3
+  unitRole: 1
+  requiredProductionBuildings: 07000000
+  unitCostList:
+  - resourceType: 2
+    amount: 11
+  - resourceType: 4
+    amount: 14
+  unitTrainingTime: 24
+  unitMaxHealth: 195
+  attackDamage: 37
+  attackRange: 1
+  attackCooldown: 1.3
+  attackPower: 11
+  moveSpeed: 0.8
+  lineOfSightRange: 5
+  carryingCapacity: 0
+  buildSpeed: 0

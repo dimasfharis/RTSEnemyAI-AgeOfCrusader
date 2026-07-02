@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 73e0c16f04e85b64f8719b5f898c77ad, type: 3}
+  m_Name: DefensiveAIProfileSO
+  m_EditorClassIdentifier: 
+  aiProfileType: 1
+  OurPowerMultiplier: 0.8
+  EnemyPowerMultiplier: 1.2
+  OurResourceMultiplier: 1.2
+  IncomeMultiplier: 1.2
+  EnemyThreatMultiplier: 1.2
+  BaseDamageMultiplier: 1.2
+  WorkerMultiplier: 1.5
+  MilitaryMultiplier: 0.8
+  EconomyBuildingMultiplier: 1.4
+  MilitaryBuildingMultiplier: 0.8
+  DefenseMultiplier: 1.4
+  ResearchMultiplier: 1.1
+  AttackMultiplier: 0.7
+  PatrolMultiplier: 1.2
+  HarassMultiplier: 0.8

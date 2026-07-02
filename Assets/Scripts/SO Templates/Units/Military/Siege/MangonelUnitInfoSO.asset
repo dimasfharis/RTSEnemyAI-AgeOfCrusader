@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a0839b8fd33649042bb441a3ff195c4c, type: 3}
+  m_Name: MangonelUnitInfoSO
+  m_EditorClassIdentifier: 
+  unitPrefab: {fileID: 3092431008100835616, guid: 33d6b27c4f336004f99f098c88280151, type: 3}
+  unitType: 6
+  unitRole: 3
+  requiredProductionBuildings: 08000000
+  unitCostList:
+  - resourceType: 2
+    amount: 28
+  - resourceType: 4
+    amount: 23
+  - resourceType: 1
+    amount: 12
+  unitTrainingTime: 37
+  unitMaxHealth: 240
+  attackDamage: 38
+  attackRange: 5
+  attackCooldown: 4.2
+  attackPower: 21
+  moveSpeed: 0.6
+  lineOfSightRange: 6
+  carryingCapacity: 0
+  buildSpeed: 0

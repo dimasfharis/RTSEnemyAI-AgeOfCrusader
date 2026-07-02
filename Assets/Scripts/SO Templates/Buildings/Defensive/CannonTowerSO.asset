@@ -1,0 +1,38 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2b40d3836ebf8ca4191f5346946b8ae0, type: 3}
+  m_Name: CannonTowerSO
+  m_EditorClassIdentifier: 
+  buildingPrefab: {fileID: 1279889914096433119, guid: d111db4c72f3e604c982cebd16518f2a, type: 3}
+  buildingType: 12
+  buildingCategory: 2
+  length: 2
+  width: 2
+  buildingCostList:
+  - resourceType: 1
+    amount: 30
+  - resourceType: 3
+    amount: 20
+  buildTime: 80
+  maxHitPoint: 900
+  lineOfSightRange: 7
+  canAttack: 1
+  attackDamage: 29
+  attackAreaOfEffectRadius: 1.5
+  attackRange: 5
+  attackCooldown: 3
+  defensePower: 7
+  isResourceDeposit: 0
+  acceptedResources: 
+  populationProvided: 0
+  canTrainUnit: 0
+  trainableUnits: 

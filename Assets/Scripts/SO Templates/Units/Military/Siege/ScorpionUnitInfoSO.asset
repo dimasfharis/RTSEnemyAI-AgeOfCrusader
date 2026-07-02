@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a0839b8fd33649042bb441a3ff195c4c, type: 3}
+  m_Name: ScorpionUnitInfoSO
+  m_EditorClassIdentifier: 
+  unitPrefab: {fileID: 3092431008100835616, guid: c0dea3168233c09429bfff809af69383, type: 3}
+  unitType: 7
+  unitRole: 3
+  requiredProductionBuildings: 08000000
+  unitCostList:
+  - resourceType: 2
+    amount: 24
+  - resourceType: 4
+    amount: 18
+  - resourceType: 1
+    amount: 7
+  unitTrainingTime: 32
+  unitMaxHealth: 210
+  attackDamage: 47
+  attackRange: 5
+  attackCooldown: 3.7
+  attackPower: 19
+  moveSpeed: 0.6
+  lineOfSightRange: 6
+  carryingCapacity: 0
+  buildSpeed: 0

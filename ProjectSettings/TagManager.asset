@@ -1,0 +1,57 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!78 &1
+TagManager:
+  serializedVersion: 2
+  tags:
+  - EnemyBase
+  - ResourceNode
+  - PlayerUnit
+  - EnemyMilitaryUnit
+  - EnemyWorkerUnit
+  layers:
+  - Default
+  - TransparentFX
+  - Ignore Raycast
+  - 
+  - Water
+  - UI
+  - Grounds
+  - Units
+  - PlayerUnit
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  m_SortingLayers:
+  - name: Default
+    uniqueID: 0
+    locked: 0
+  - name: Behind
+    uniqueID: 2370955291
+    locked: 0
+  - name: Between
+    uniqueID: 2294071277
+    locked: 0
+  - name: Front
+    uniqueID: 179309271
+    locked: 0

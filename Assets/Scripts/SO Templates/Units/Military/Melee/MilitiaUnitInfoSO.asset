@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a0839b8fd33649042bb441a3ff195c4c, type: 3}
+  m_Name: MilitiaUnitInfoSO
+  m_EditorClassIdentifier: 
+  unitPrefab: {fileID: 3092431008100835616, guid: b659696798b682443b2744755215e45f, type: 3}
+  unitType: 2
+  unitRole: 1
+  requiredProductionBuildings: 07000000
+  unitCostList:
+  - resourceType: 2
+    amount: 8
+  - resourceType: 4
+    amount: 11
+  unitTrainingTime: 18
+  unitMaxHealth: 145
+  attackDamage: 24
+  attackRange: 1
+  attackCooldown: 1.2
+  attackPower: 7
+  moveSpeed: 0.9
+  lineOfSightRange: 5
+  carryingCapacity: 0
+  buildSpeed: 0

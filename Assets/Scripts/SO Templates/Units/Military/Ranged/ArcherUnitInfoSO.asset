@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a0839b8fd33649042bb441a3ff195c4c, type: 3}
+  m_Name: ArcherUnitInfoSO
+  m_EditorClassIdentifier: 
+  unitPrefab: {fileID: 3092431008100835616, guid: 2ba9c17c6e7922348a81e1d23b50ccef, type: 3}
+  unitType: 4
+  unitRole: 2
+  requiredProductionBuildings: 07000000
+  unitCostList:
+  - resourceType: 2
+    amount: 9
+  - resourceType: 4
+    amount: 9
+  unitTrainingTime: 16
+  unitMaxHealth: 115
+  attackDamage: 17
+  attackRange: 3
+  attackCooldown: 1.1
+  attackPower: 6
+  moveSpeed: 1
+  lineOfSightRange: 5
+  carryingCapacity: 0
+  buildSpeed: 0

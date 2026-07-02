@@ -1,0 +1,241 @@
+using System.Collections.Generic;
+using RTS.Core;
+using RTS.Units.Worker;
+using RTS.Common.Enums;
+using UnityEngine;
+using RTS.Buildings.Data;
+using RTS.Buildings.Common;
+using RTS.Units.Common;
+using RTS.Managers.Research;
+
+namespace RTS.Managers
+{
+    public class WorkerManager
+    {
+        [Header("References")]
+        private BuildingDatabase buildingDatabase;
+        private ResearchManager researchManager;
+
+        private readonly PlayerInfo playerInfo;
+
+        private readonly List<WorkerUnitController> workers = new List<WorkerUnitController>();
+
+        #region Initialization
+
+        public WorkerManager(PlayerInfo playerInfo)
+        {
+            this.playerInfo = playerInfo;
+        }
+
+        #endregion
+
+        #region Worker Registration
+
+        public void RegisterWorker(WorkerUnitController worker)
+        {
+            if (!workers.Contains(worker))
+            {
+                workers.Add(worker);
+                playerInfo.ResourceManager.AddPopulation(1);
+            }
+        }
+
+        public void UnregisterWorker(WorkerUnitController worker)
+        {
+            if (workers.Contains(worker))
+            {
+                workers.Remove(worker);
+            }
+        }
+
+        #endregion
+
+        #region Update Loop
+
+        // Called every frame from the GameplayManager
+        public void Tick()
+        {
+            
+        }
+
+        #endregion
+
+        #region Resource Gathering
+
+        public void AssignWorkerToGather(List<WorkerUnitController> workers, ResourceType resourceType)
+        {
+            foreach (var worker in workers)
+            {
+                worker.SetWorkerToGather(resourceType);
+            }
+        }
+
+        #endregion
+
+        #region Building Construction
+
+        public bool TryAssignWorkerToBuild(List<WorkerUnitController> workers, BuildingType buildingType, Vector3 buildingPosition)
+        {
+            if (workers == null)
+                return false;
+
+            if (buildingDatabase == null)
+            {
+                buildingDatabase = playerInfo.DataManager.buildingDatabase;
+            }
+
+            BuildingInfoSO template = buildingDatabase.GetBuildingTemplate(buildingType);
+
+            if (template == null)
+            {
+                Debug.LogError($"Template not found for {buildingType}");
+                return false;
+            }
+
+            if (!CanBuildBuilding(buildingType))
+                return false;
+
+            var cost = buildingDatabase.GetBuildingCost(buildingType);
+            bool canBuild = playerInfo.ResourceManager.SpendResource(cost);
+
+            if (canBuild)
+            {
+                foreach (var worker in workers)
+                {
+                    worker.AssignWorkerToBuild(template, buildingPosition);
+                }
+
+                return true;
+            }
+
+            return false;
+        }
+
+        private bool CanBuildBuilding(BuildingType buildingType)
+        {
+            var cost = buildingDatabase.GetBuildingCost(buildingType);
+
+            if (!playerInfo.ResourceManager.CanAfford(cost))
+                return false;
+
+            return true;
+        }
+
+        #endregion
+
+        #region Public API
+
+        public List<WorkerUnitController> GetAllUnits()
+        {
+            return workers;
+        }
+
+        public int GetWorkerCount()
+        {
+            return workers.Count;
+        }
+
+        public List<WorkerUnitController> GetIdleWorkers()
+        {
+            List<WorkerUnitController> idleWorkers = new List<WorkerUnitController>();
+
+            foreach (var worker in workers)
+            {
+                if (worker.IsWorkerIdle())
+                {
+                    idleWorkers.Add(worker);
+                }
+            }
+
+            return idleWorkers;
+        }
+
+        public List<WorkerUnitController> GetWorkersInRadius(Vector3 position, float radius)
+        {
+            var workersInArea = new List<WorkerUnitController>();
+
+            foreach (var worker in workers)
+            {
+                if (Vector3.Distance(worker.transform.position, position) <= radius)
+                {
+                    workersInArea.Add(worker);
+                }
+            }
+
+            return workersInArea;
+        }
+
+        public BaseUnitController GetWorkerAtPosition(Vector3 position)
+        {
+            foreach (var worker in workers)
+            {
+                if (Vector3.Distance(worker.transform.position, position) < 0.7f)
+                {
+                    return worker;
+                }
+            }
+
+            return null;
+        }
+
+        #endregion
+
+        #region Unit Spawning
+
+        public WorkerUnitController SpawnUnitAtBuilding(BaseBuildingController building, UnitType unitType)
+        {
+            // Prefab Instantiation
+            GameObject prefab = playerInfo.DataManager.unitDatabase.GetUnitPrefab(unitType);
+            Vector3 spawnPosition = building.transform.position + building.GetBuildingInfo().unitSpawnPoint;
+            GameObject unitObj = Object.Instantiate(prefab, spawnPosition, Quaternion.identity);
+
+            // Controller & UnitInfo Initialization
+            var controller = unitObj.GetComponent<WorkerUnitController>();
+            var unitInfoTemplate = playerInfo.DataManager.unitDatabase.GetUnitTemplate(unitType);
+            controller.Init(playerInfo, unitInfoTemplate);
+
+            // Unit Stats Upgrade
+            if (researchManager == null)
+                researchManager = playerInfo.ResearchManager;
+            researchManager.UpgradeStats(controller);
+
+            // Unit Registration
+            RegisterWorker(controller);
+
+            return controller;
+        }
+
+        #endregion
+
+        #region Stats Research Upgrade
+
+        public void LevelUpCarryingCapacity(float amount)
+        {
+            foreach (var worker in workers)
+            {
+                float upgradedValue = worker.GetUnitInfo().carryingCapacity * amount;
+                worker.GetUnitInfo().carryingCapacity = (int) upgradedValue;
+            }
+        }
+
+        public void LevelUpWorkerHP(float amount)
+        {
+            foreach (var worker in workers)
+            {
+                worker.GetUnitInfo().unitMaxHealth *= amount;
+                worker.GetUnitInfo().unitHealth = worker.GetUnitInfo().unitMaxHealth;
+            }
+        }
+
+        public void LevelUpAttackPoint(float amount)
+        {
+            foreach (var worker in workers)
+            {
+                float upgradedValue = worker.GetUnitInfo().attackDamage * amount;
+                worker.GetUnitInfo().attackDamage *= (int) upgradedValue;
+            }
+        }
+
+        #endregion
+    }
+}

@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fd14070274054fa40b55237b0733efc6, type: 3}
+  m_Name: LevelUpAllAttackPoint
+  m_EditorClassIdentifier: 
+  researchType: 4
+  researchCostList:
+  - resourceType: 2
+    amount: 45
+  - resourceType: 4
+    amount: 55
+  - resourceType: 1
+    amount: 25
+  researchTime: 180
+  carryingCapacity: 0
+  maxHealth: 0
+  attackPoint: 1.25
+  towerDamage: 0
+  baseMaxHealth: 0
+  unitTrainingSpeed: 0
