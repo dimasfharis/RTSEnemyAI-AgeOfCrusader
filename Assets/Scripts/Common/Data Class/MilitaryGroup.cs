@@ -59,13 +59,16 @@ namespace RTS.Common.DataClass
 
         #region Lifecycle
 
-        private void OnGroupDisbanded()
+        public void OnGroupDisbanded()
         {
             foreach (BaseUnitController unit in units)
             {
                 unit.GetMicromanagementUnitController().IntegrateMoveSpeedToMarchingSpeed(false);
-                UnregisterUnit(unit);
             }
+
+            UnregisterUnits(units);
+
+            aiGoal = null;
         }
 
         #endregion
@@ -127,11 +130,20 @@ namespace RTS.Common.DataClass
             }
         }
 
+        public void UnregisterUnits(List<BaseUnitController> units)
+        {
+            foreach (BaseUnitController unit in units)
+            {
+                UnregisterUnit(unit);
+            }
+
+            this.units.RemoveAll(unit => units.Contains(unit));
+        }
+
         public void UnregisterUnit(BaseUnitController unit)
         {
             if (units.Contains(unit))
             {
-                units.Remove(unit);
                 unit.GetMicromanagementUnitController().militaryGroup = null;
                 unit.GetMicromanagementUnitController().OnMarchingStatusChanged -= OnUnitMarchingStatusChanged;
                 unit.GetMicromanagementUnitController().OnBeingAttacked -= OnUnitBeingAttacked;
@@ -150,7 +162,7 @@ namespace RTS.Common.DataClass
                     {
                         if (group.units.Contains(unit))
                         {
-                            group.UnregisterUnit(unit);
+                            group.UnregisterUnits(new List<BaseUnitController>() { unit });
                         }
                     }
                 }

@@ -104,6 +104,20 @@ namespace RTS.AI.Behavior
 
         #endregion
 
+        #region Relation
+
+        public void UnlinkRelations()
+        {
+            foreach (var unit in AssignedUnits)
+            {
+                unit.UnassignGoal();
+            }
+
+            AssignedUnits.Clear();
+        }
+
+        #endregion
+
         #region Public API
 
         public AIGoal SetUnit(UnitType unitType)

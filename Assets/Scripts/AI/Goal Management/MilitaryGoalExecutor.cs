@@ -30,7 +30,7 @@ namespace RTS.AI.GoalManagement
 
         // Requirement Parameters
         private int requiredUnitsForScout = 2;
-        private int requiredTilesForScout = 300;
+        private int requiredTilesForScout = 150;
 
         #region Initialization
 
@@ -168,7 +168,7 @@ namespace RTS.AI.GoalManagement
 
         private void ScoutTick(AIGoal goal)
         {
-            if (CanExecuteScout(goal) && !goal.IsExecuteStarted)
+            if (CanExecuteScout(goal) && !goal.IsExecuteStarted && !goal.IsCompleted)
             {
                 ScoutStartExecute(goal);
                 goal.StartExecute();
@@ -239,7 +239,17 @@ namespace RTS.AI.GoalManagement
 
         private void Scout_OnCompleted(AIGoal aiGoal)
         {
+            Vector3 townCenterPosition = playerInfo.BuildingManager.GetBuilding(BuildingType.TownCenter).transform.position;
+            MilitaryGroup group = activeGroups[aiGoal];
+            List<BaseUnitController> assignedUnits = group.units;
 
+            militaryUnitManager.IssueMoveCommand(assignedUnits, townCenterPosition);
+
+            aiGoal.UnlinkRelations();
+            activeGroups[aiGoal].OnGroupDisbanded();
+            activeGroups.Remove(aiGoal);
+
+            // Send report log later
         }
 
         #endregion

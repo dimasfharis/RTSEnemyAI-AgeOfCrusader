@@ -66,7 +66,7 @@ namespace RTS.AI.Micromanagement
         {
             if (militaryGroup != null)
             {
-                militaryGroup.UnregisterUnit(unitController);
+                militaryGroup.UnregisterUnits(new List<BaseUnitController>() { unitController });
             }
         }
 

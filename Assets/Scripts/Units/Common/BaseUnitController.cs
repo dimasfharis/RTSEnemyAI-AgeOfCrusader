@@ -398,6 +398,18 @@ namespace RTS.Units.Common
 
         #endregion
 
+        #region Goal Management
+
+        public void UnassignGoal()
+        {
+            if (activatedGoal != null)
+            {
+                activatedGoal = null;
+            }
+        }
+
+        #endregion
+
         #region Public API
 
         public List<BaseUnitController> GetNeighbourUnitNearby(float radius)
