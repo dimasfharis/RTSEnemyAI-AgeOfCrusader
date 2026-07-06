@@ -195,8 +195,17 @@ namespace RTS.Managers.Map
                 if (!knownResourceNodes.ContainsKey(node.GetPosition()))
                 {
                     RegisterResourceNodeSeen(node.GetResourceType(), node.GetPosition());
+                    DebugCalculateResourceNodeExplored(); // for debugging purposes
                 }
             }
+        }
+
+        // for debugging purposes, calculate the number of explored resource nodes
+        private void DebugCalculateResourceNodeExplored()
+        {
+            int allNodes = ResourceNodeManager.Instance.GetTotalActiveNodes();
+
+            Debug.Log($"Resource Nodes Explored: {knownResourceNodes.Count} / {allNodes}");
         }
 
         public void UpdateBuildingMemory(List<BaseBuildingController> buildingsInRadius, PlayerInfo opponentPlayerInfo)
