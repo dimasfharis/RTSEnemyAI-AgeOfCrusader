@@ -195,7 +195,7 @@ namespace RTS.Managers.Map
                 if (!knownResourceNodes.ContainsKey(node.GetPosition()))
                 {
                     RegisterResourceNodeSeen(node.GetResourceType(), node.GetPosition());
-                    DebugCalculateResourceNodeExplored(); // for debugging purposes
+                    //DebugCalculateResourceNodeExplored(); // for debugging purposes
                 }
             }
         }
@@ -217,8 +217,16 @@ namespace RTS.Managers.Map
                 if (!IsPositionInMemory(building.transform.position, knownEnemyBuildings))
                 {
                     RegisterEnemyBuildingSeen(building.GetBuildingInfo().buildingType, building.transform.position);
+                    DebugCalculateEnemyBuildingExplored(); // for debugging purposes
                 }
             }
+        }
+
+        // for debugging purposes, calculate the number of explored enemy buildings
+        private void DebugCalculateEnemyBuildingExplored()
+        {
+            int allBuildings = playerInfo.GameManager.GetOpponentPlayerInfo(playerInfo.PlayerNumber)[0].BuildingManager.GetAllBuildings().Count;
+            Debug.Log($"Enemy Buildings Explored: {knownEnemyBuildings.Count} / {allBuildings}");
         }
 
         public void UpdateEnemyUnitMemory(List<BaseUnitController> unitsInRadius, PlayerInfo opponentPlayerInfo)
@@ -230,13 +238,21 @@ namespace RTS.Managers.Map
                 if (!IsPositionInMemory(unit.transform.position, knownEnemyUnits))
                 {
                     RegisterEnemyUnitSeen(unit.GetUnitInfo().unitType, unit.transform.position);
+                    DebugCalculateEnemyUnitExplored(); // for debugging purposes
                 }
             }
         }
 
+        // for debugging purposes, calculate the number of explored enemy units
+        private void DebugCalculateEnemyUnitExplored()
+        {
+            int allUnits = playerInfo.GameManager.GetOpponentPlayerInfo(playerInfo.PlayerNumber)[0].MilitaryUnitManager.GetAllUnits().Count;
+            Debug.Log($"Enemy Units Explored: {knownEnemyUnits.Count} / {allUnits}");
+        }
+
         #endregion
 
-        #region Building Placement
+            #region Building Placement
 
         public Vector3 FindBuildablePositionNear(Vector3 baseRef, float buildRadius)
         {

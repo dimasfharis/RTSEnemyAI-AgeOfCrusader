@@ -1,6 +1,5 @@
 using RTS.Monitoring;
 using RTS.Buildings.Common;
-using RTS.Buildings.Economic;
 using RTS.Buildings.Military;
 using RTS.Common.Enums;
 using RTS.Data;
@@ -15,7 +14,6 @@ using System.Collections.Generic;
 using UnityEngine;
 using RTS.AI.GoalManagement;
 using RTS.AI.Behavior;
-using UnityEditor;
 
 namespace RTS.Core
 {
@@ -400,7 +398,9 @@ namespace RTS.Core
 
         private void InitiateDebugPlayer1(PlayerInfo playerInfo)
         {
+            BaseBuildingController barrack = InitiateBuilding(playerInfo, BuildingType.Barracks, new Vector3(25, 15, 0));
 
+            InitiateUnit(playerInfo, UnitType.Militia, barrack, 12);
         }
 
         private void InitiateDebugPlayer2(PlayerInfo playerInfo)

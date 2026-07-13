@@ -30,7 +30,7 @@ namespace RTS.AI.GoalManagement
 
         // Requirement Parameters
         private int requiredUnitsForScout = 2;
-        private int requiredTilesForScout = 150;
+        private int requiredTilesForScout = 300;
 
         #region Initialization
 
