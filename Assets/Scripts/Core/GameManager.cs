@@ -15,6 +15,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using RTS.AI.GoalManagement;
 using RTS.AI.Behavior;
+using UnityEditor;
 
 namespace RTS.Core
 {
@@ -28,7 +29,7 @@ namespace RTS.Core
         private Dictionary<int, PlayerInfo> Players;
         private int numberOfPlayers = 0;
 
-        #region Developer Purpose Only
+        #region Unit Testing (developer purpose only)
 
         #region Do Scout
 
@@ -379,6 +380,40 @@ namespace RTS.Core
 
         #endregion
 
+        #region Unit & Building Initiation (developer purpose only)
+
+        private void InitiateDebug(PlayerInfo playerInfo)
+        {
+            switch (playerInfo.PlayerNumber)
+            {
+                case 1:
+                    InitiateDebugPlayer1(playerInfo);
+                    break;
+                case 2:
+                    InitiateDebugPlayer2(playerInfo);
+                    break;
+                default:
+                    Debug.LogWarning($"No debug initiation for player {playerInfo.PlayerNumber}");
+                    break;
+            }
+        }
+
+        private void InitiateDebugPlayer1(PlayerInfo playerInfo)
+        {
+
+        }
+
+        private void InitiateDebugPlayer2(PlayerInfo playerInfo)
+        {
+            BaseBuildingController barrack = InitiateBuilding(playerInfo, BuildingType.Barracks, new Vector3(56, 56, 0));
+            BaseBuildingController granary = InitiateBuilding(playerInfo, BuildingType.Granary, new Vector3(50, 49, 0));
+
+            InitiateUnit(playerInfo, UnitType.Swordsman, granary, 3);
+            InitiateUnit(playerInfo, UnitType.Militia, barrack, 6);
+        }
+
+        #endregion
+
         #region Initialization
 
         private void Awake()
@@ -421,41 +456,55 @@ namespace RTS.Core
                 PlayerInfo player = CreateNewPlayer(dummy.playerName, dummy.isBot, dummy.aiProfileType);
 
                 // Town Center Initiation
-                if (!player.BuildingManager.TryPlaceBuilding(BuildingType.TownCenter, dummy.townCenterPosition))
-                {
-                    Debug.LogWarning($"Building {BuildingType.TownCenter} can not placed");
-                } else
-                {
-                    FinishTownCenterBuildProgress(player);
-                }
+                BaseBuildingController townCenterController = InitiateBuilding(player, BuildingType.TownCenter, dummy.townCenterPosition);
 
                 // Worker Initiation
-                InitiateWorker(player, dummy.numbOfWorkerInitiate);
+                InitiateUnit(player, UnitType.Worker, townCenterController, dummy.numbOfWorkerInitiate);
 
                 // Player Resource Initiation
                 InitiateResource(player);
+
+                // For Debug Purpose Only
+                InitiateDebug(player);
             }
         }
 
-        private void FinishTownCenterBuildProgress(PlayerInfo playerInfo)
+        private BaseBuildingController InitiateBuilding(PlayerInfo playerInfo, BuildingType buildingType, Vector3 position)
         {
-            TownCenterController controller = GameObject.FindObjectOfType<TownCenterController>();
+            if (!playerInfo.BuildingManager.TryPlaceBuilding(buildingType, position))
+            {
+                Debug.LogWarning($"Building {buildingType} can not be placed");
+                return null;
+            } else
+            {
+                BaseBuildingController controller = playerInfo.BuildingManager.GetBuildingInstantiatedByTilePos(position);
+                FinishBuildProgress(playerInfo, controller);
+                return controller;
+            }
+        }
+
+        private void FinishBuildProgress(PlayerInfo playerInfo, BaseBuildingController controller)
+        {
             if (controller == null)
             {
-                Debug.LogWarning("Town center controller is missing");
+                Debug.LogWarning("Building controller is missing");
+                return;
             }
 
-            float maxBuildProgress = playerInfo.DataManager.buildingDatabase.GetBuildingTemplate(BuildingType.TownCenter).buildTime;
+            float maxBuildProgress = playerInfo.DataManager.buildingDatabase.GetBuildingTemplate(controller.GetBuildingInfo().buildingType).buildTime;
             controller.AddBuildProgress(maxBuildProgress);
         }
 
-        private void InitiateWorker(PlayerInfo playerInfo, int count)
+        private void InitiateUnit(PlayerInfo playerInfo, UnitType unitType, BaseBuildingController buildingSpawn, int count)
         {
             for (int i = 0; i < count; i++)
             {
-                BaseBuildingController townCenterController = playerInfo.BuildingManager.GetBuilding(BuildingType.TownCenter);
-
-                playerInfo.WorkerManager.SpawnUnitAtBuilding(townCenterController, UnitType.Worker);
+                if (unitType == UnitType.Worker)
+                {
+                    playerInfo.WorkerManager.SpawnUnitAtBuilding(buildingSpawn, unitType);
+                }
+                else
+                    playerInfo.MilitaryUnitManager.SpawnUnitAtBuilding(buildingSpawn, unitType);
             }
         }
 
