@@ -1,3 +1,4 @@
+using RTS.AI.Micromanagement;
 using RTS.Buildings.Common;
 using RTS.Common.Enums;
 using RTS.Core;
@@ -13,6 +14,7 @@ namespace RTS.Managers
     public class MilitaryUnitManager
     {
         private readonly PlayerInfo playerInfo;
+        private MicromanagementAIManager micromanagementAIManager;
         private ResearchManager researchManager;
 
         private List<MilitaryUnitController> militaryUnits = new List<MilitaryUnitController>();
@@ -110,38 +112,21 @@ namespace RTS.Managers
             unit.StopMovement();
         }
 
+        public void IssueRetreatCommand(List<BaseUnitController> selectedUnits)
+        {
+            IssueMoveCommand(selectedUnits, new Vector3(1, 1, 0));
+        }
+
         #endregion
 
         #region Attacked Response
 
         public void RespondToBeingAttackedInArea(BaseUnitController attackedUnit, float radius)
         {
-            List<MilitaryUnitController> nearbyUnits = GetUnitsInRadius(attackedUnit.transform.position, radius);
+            if (micromanagementAIManager == null)
+                micromanagementAIManager = playerInfo.AIManager.GetMicromanagementAIManager();
 
-            foreach (var unit in nearbyUnits)
-            {
-                if (unit != attackedUnit
-                    && unit is MilitaryUnitController
-                    && unit.GetCurrentTargetUnit() == null
-                    && unit.GetCurrentTargetBuilding() == null
-                    && Vector3.Distance(unit.transform.position, attackedUnit.transform.position) <= unit.GetUnitInfo().lineOfSightRange)
-                {
-                    BaseUnitController opponentUnit = unit.GetMicromanagementUnitController().GetAttackPriorityOpponentUnit();
-
-                    if (opponentUnit != null)
-                    {
-                        opponentUnit.GetMicromanagementUnitController().BeingAttacked(unit);
-                        IssueAttackCommand(new() { unit }, opponentUnit);
-                    }
-
-                    BaseBuildingController opponentBuilding = unit.GetMicromanagementUnitController().GetAttackPriorityOpponentBuilding();
-
-                    if (opponentBuilding != null)
-                    {
-                        IssueAttackCommand(new() { unit }, opponentBuilding);
-                    }
-                }
-            }
+            micromanagementAIManager.ReinforceGroupByArea(attackedUnit.transform.position, radius);
         }
 
         #endregion

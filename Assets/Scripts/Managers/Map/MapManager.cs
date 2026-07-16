@@ -226,7 +226,7 @@ namespace RTS.Managers.Map
         private void DebugCalculateEnemyBuildingExplored()
         {
             int allBuildings = playerInfo.GameManager.GetOpponentPlayerInfo(playerInfo.PlayerNumber)[0].BuildingManager.GetAllBuildings().Count;
-            Debug.Log($"Enemy Buildings Explored: {knownEnemyBuildings.Count} / {allBuildings}");
+            //Debug.Log($"Enemy Buildings Explored: {knownEnemyBuildings.Count} / {allBuildings}");
         }
 
         public void UpdateEnemyUnitMemory(List<BaseUnitController> unitsInRadius, PlayerInfo opponentPlayerInfo)
@@ -247,12 +247,12 @@ namespace RTS.Managers.Map
         private void DebugCalculateEnemyUnitExplored()
         {
             int allUnits = playerInfo.GameManager.GetOpponentPlayerInfo(playerInfo.PlayerNumber)[0].MilitaryUnitManager.GetAllUnits().Count;
-            Debug.Log($"Enemy Units Explored: {knownEnemyUnits.Count} / {allUnits}");
+            //Debug.Log($"Enemy Units Explored: {knownEnemyUnits.Count} / {allUnits}");
         }
 
         #endregion
 
-            #region Building Placement
+        #region Building Placement
 
         public Vector3 FindBuildablePositionNear(Vector3 baseRef, float buildRadius)
         {

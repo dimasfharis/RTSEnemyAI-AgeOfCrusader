@@ -29,7 +29,15 @@ namespace RTS.Common.DataClass
         public List<BuildingType> targetBuildingTypes = new List<BuildingType>();
 
         public Vector3 targetPosition;
+
         public bool isEngaged;
+        private Vector3 lastPositionEngaged;
+        private BaseUnitController lastUnitEngaged;
+        private float engageTimer;
+        private float engageDuration = 5f;
+
+        private float retreatTimer;
+        private float retreatCheckDuration = 3f;
 
         // Group Marching
         private int marchingUnitsCount;
@@ -78,6 +86,9 @@ namespace RTS.Common.DataClass
         public void Tick()
         {
             UpdateGroupMode();
+            UpdateGroupEngagement();
+
+            CheckForRetreat();
         }
 
         #endregion
@@ -282,6 +293,31 @@ namespace RTS.Common.DataClass
 
         #endregion
 
+        #region Group Engagement
+
+        private void UpdateGroupEngagement()
+        {
+            if (isEngaged)
+            {
+                engageTimer += Time.deltaTime;
+                if (engageTimer >= engageDuration)
+                {
+                    isEngaged = false;
+                    engageTimer = 0f;
+                }
+            }
+        }
+
+        private void SetGroupEngaged(BaseUnitController unitEngaged)
+        {
+            lastPositionEngaged = unitEngaged.transform.position;
+            lastUnitEngaged = unitEngaged;
+            isEngaged = true;
+            engageTimer = 0f;
+        }
+
+        #endregion
+
         #region Group Awareness
 
         private void OnUnitBeingAttacked(BaseUnitController unit, BaseUnitController attackerUnit)
@@ -292,22 +328,73 @@ namespace RTS.Common.DataClass
                     && unitInGroup.GetCurrentTargetUnit() == null
                     && unitInGroup.GetCurrentTargetBuilding() == null)
                 {
-                    BaseUnitController opponentUnit = unitInGroup.GetMicromanagementUnitController().GetAttackPriorityOpponentUnit();
-
-                    if (opponentUnit != null)
-                    {
-                        opponentUnit.GetMicromanagementUnitController().BeingAttacked(unitInGroup);
-                        militaryUnitManager.IssueAttackCommand(new() { unitInGroup }, opponentUnit);
-                    }
-
-                    BaseBuildingController opponentBuilding = unitInGroup.GetMicromanagementUnitController().GetAttackPriorityOpponentBuilding();
-
-                    if (opponentBuilding != null)
-                    {
-                        militaryUnitManager.IssueAttackCommand(new() { unitInGroup }, opponentBuilding);
-                    }
+                    SetGroupEngaged(unit);
+                    unitInGroup.GetMicromanagementUnitController().AttackPriorityOpponent(unitInGroup);
                 }
             }
+        }
+
+        #endregion
+
+        #region Retreat
+
+        private void CheckForRetreat()
+        {
+            if (!isEngaged)
+                return;
+
+            retreatTimer += Time.deltaTime;
+
+            if (retreatTimer < retreatCheckDuration)
+                return;
+
+            retreatTimer = 0f;
+
+            List<PlayerInfo> enemyPlayerInfo = playerInfo.GameManager.GetOpponentPlayerInfo(playerInfo.PlayerNumber);
+            List<MilitaryUnitController> enemyUnitsInRange = enemyPlayerInfo[0].MilitaryUnitManager.GetUnitsInRadius(lastPositionEngaged, lastUnitEngaged.GetUnitInfo().lineOfSightRange * 2);
+
+            float militaryPower = CalculateMilitaryPower(units);
+            float enemyMilitaryPower = CalculateMilitaryPower(enemyUnitsInRange);
+
+            Debug.Log($"Player {playerInfo.PlayerNumber} Power: {militaryPower}, Player {enemyPlayerInfo[0].PlayerNumber} Power: {enemyMilitaryPower}");
+
+            if (militaryPower < (enemyMilitaryPower * 0.8f))
+            {
+                Debug.Log($"Player {playerInfo.PlayerNumber} is retreating");
+
+                militaryUnitManager.IssueRetreatCommand(units);
+                isEngaged = false;
+
+                OnGroupDisbanded();
+            }
+        }
+
+        private float CalculateMilitaryPower(List<MilitaryUnitController> units)
+        {
+            float totalPower = 0f;
+            foreach (MilitaryUnitController unit in units)
+            {
+                if (unit is MilitaryUnitController)
+                {
+                    MilitaryUnitController militaryUnit = unit as MilitaryUnitController;
+                    totalPower += militaryUnit.GetUnitInfo().attackPower;
+                }
+            }
+            return totalPower;
+        }
+
+        private float CalculateMilitaryPower(List<BaseUnitController> units)
+        {
+            float totalPower = 0f;
+            foreach (BaseUnitController unit in units)
+            {
+                if (unit is MilitaryUnitController)
+                {
+                    MilitaryUnitController militaryUnit = unit as MilitaryUnitController;
+                    totalPower += militaryUnit.GetUnitInfo().attackPower;
+                }
+            }
+            return totalPower;
         }
 
         #endregion

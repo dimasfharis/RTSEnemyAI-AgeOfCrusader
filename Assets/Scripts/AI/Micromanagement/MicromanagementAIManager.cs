@@ -57,7 +57,7 @@ namespace RTS.AI.Micromanagement
             AssemblyGroup(militaryGroup);
         }
 
-        private MilitaryGroup ReinforceGroupByArea(Vector3 fromPosition, float radius)
+        public MilitaryGroup ReinforceGroupByArea(Vector3 fromPosition, float radius)
         {
             List<MilitaryUnitController> unitsInRadius = militaryUnitManager.GetUnitsInRadius(fromPosition, radius);
 

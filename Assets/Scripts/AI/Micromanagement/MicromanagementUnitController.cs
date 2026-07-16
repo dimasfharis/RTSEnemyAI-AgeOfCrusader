@@ -280,27 +280,25 @@ namespace RTS.AI.Micromanagement
                 beingAttackedCount = beingAttackedInterval;
                 OnBeingAttacked?.Invoke(unitController, attackerUnit);
 
-                militaryUnitManager.RespondToBeingAttackedInArea(unitController, 10f);
+                militaryUnitManager.RespondToBeingAttackedInArea(unitController, unitController.GetUnitInfo().lineOfSightRange * 2);
             }
+        }
 
-            // Self-preservation, attack back when being attacked
-            List<BaseUnitController> units = new() { unitController };
-
+        public void AttackPriorityOpponent(BaseUnitController unit)
+        {
             BaseUnitController opponentUnit = GetAttackPriorityOpponentUnit();
 
             if (opponentUnit != null)
             {
-                opponentUnit.GetMicromanagementUnitController().BeingAttacked(unitController);
-                militaryUnitManager.IssueAttackCommand(units, opponentUnit);
-                return;
+                opponentUnit.GetMicromanagementUnitController().BeingAttacked(unit);
+                militaryUnitManager.IssueAttackCommand(new List<BaseUnitController>() { unit }, opponentUnit);
             }
 
             BaseBuildingController opponentBuilding = GetAttackPriorityOpponentBuilding();
 
             if (opponentBuilding != null)
             {
-                militaryUnitManager.IssueAttackCommand(units, opponentBuilding);
-                return;
+                militaryUnitManager.IssueAttackCommand(new List<BaseUnitController>() { unit }, opponentBuilding);
             }
         }
 
