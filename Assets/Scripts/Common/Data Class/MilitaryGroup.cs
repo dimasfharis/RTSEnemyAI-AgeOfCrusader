@@ -37,7 +37,7 @@ namespace RTS.Common.DataClass
         private float engageDuration = 5f;
 
         private float retreatTimer;
-        private float retreatCheckDuration = 3f;
+        private float retreatCheckDuration = 2f;
 
         // Group Marching
         private int marchingUnitsCount;
@@ -358,7 +358,7 @@ namespace RTS.Common.DataClass
 
             Debug.Log($"Player {playerInfo.PlayerNumber} Power: {militaryPower}, Player {enemyPlayerInfo[0].PlayerNumber} Power: {enemyMilitaryPower}");
 
-            if (militaryPower < (enemyMilitaryPower * 0.8f))
+            if (militaryPower < (enemyMilitaryPower * 0.2f))
             {
                 Debug.Log($"Player {playerInfo.PlayerNumber} is retreating");
 
@@ -377,7 +377,11 @@ namespace RTS.Common.DataClass
                 if (unit is MilitaryUnitController)
                 {
                     MilitaryUnitController militaryUnit = unit as MilitaryUnitController;
-                    totalPower += militaryUnit.GetUnitInfo().attackPower;
+                    float unitPower = militaryUnit.GetUnitInfo().attackPower;
+                    float healthFactor = unit.GetUnitInfo().unitHealth / unit.GetUnitInfo().unitMaxHealth;
+                    float powerMultiplier = playerInfo.AIManager.GetAIProfile().OurPowerMultiplier;
+
+                    totalPower += unitPower * healthFactor * powerMultiplier;
                 }
             }
             return totalPower;
@@ -391,7 +395,11 @@ namespace RTS.Common.DataClass
                 if (unit is MilitaryUnitController)
                 {
                     MilitaryUnitController militaryUnit = unit as MilitaryUnitController;
-                    totalPower += militaryUnit.GetUnitInfo().attackPower;
+                    float unitPower = militaryUnit.GetUnitInfo().attackPower;
+                    float healthFactor = unit.GetUnitInfo().unitHealth / unit.GetUnitInfo().unitMaxHealth;
+                    float powerMultiplier = playerInfo.AIManager.GetAIProfile().OurPowerMultiplier;
+
+                    totalPower += unitPower * healthFactor * powerMultiplier;
                 }
             }
             return totalPower;

@@ -114,7 +114,10 @@ namespace RTS.Managers
 
         public void IssueRetreatCommand(List<BaseUnitController> selectedUnits)
         {
-            IssueMoveCommand(selectedUnits, new Vector3(1, 1, 0));
+            BuildingManager buildingManager = playerInfo.BuildingManager;
+            Vector3 townCenterPos = buildingManager.GetBuilding(BuildingType.TownCenter).transform.position;
+
+            IssueMoveCommand(selectedUnits, townCenterPos);
         }
 
         #endregion
