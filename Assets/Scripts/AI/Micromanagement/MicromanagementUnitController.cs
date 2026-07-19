@@ -2,6 +2,7 @@ using RTS.Buildings.Common;
 using RTS.Common.DataClass;
 using RTS.Common.Enums;
 using RTS.Core;
+using RTS.Data;
 using RTS.Managers;
 using RTS.Units.Common;
 using RTS.Units.Common.States;
@@ -23,6 +24,8 @@ namespace RTS.AI.Micromanagement
         private MicromanagementAIManager microAIManager;
         private WorldManager worldManager;
         private MilitaryUnitManager militaryUnitManager;
+
+        private UnitDatabase unitDatabase;
 
         private BaseUnitController unitController;
         public MilitaryGroup militaryGroup;
@@ -49,6 +52,8 @@ namespace RTS.AI.Micromanagement
             worldManager = playerInfo.GameManager.WorldManager;
             militaryUnitManager = playerInfo.MilitaryUnitManager;
             this.unitController = unitController;
+
+            unitDatabase = playerInfo.DataManager.unitDatabase;
 
             unitController.OnUnitHealthChanged += ResponseForBeingAttacked;
             unitController.OnUnitDead += OnDead;
@@ -178,37 +183,105 @@ namespace RTS.AI.Micromanagement
 
         #region Attack Priorities
 
-        public BaseUnitController GetAttackPriorityOpponentUnit()
+        public (BaseUnitController, float) GetAttackPriorityOpponentUnit()
         {
             List<BaseUnitController> opponentUnitInRadius = GetOpponentUnitInRadius();
 
             if (opponentUnitInRadius.Count <= 0)
-                return null;
+                return (null, float.MinValue);
 
             // attack enemy unit evenly (not attack the same unit)
             List<BaseUnitController> opponentUnitEvenly = GetLesserAttackedUnits(opponentUnitInRadius);
 
-            // thresholding, just get nearest opponent unit
-            // BaseUnitController nearestUnit = GetNearestUnit(opponentUnitEvenly);
-
             if (opponentUnitEvenly.Count > 0)
             {
-                return opponentUnitEvenly[UnityEngine.Random.Range(0, opponentUnitEvenly.Count)];
+                (BaseUnitController attackPriorityUnit, float score) = CalculateAttackPriorityUnit(opponentUnitEvenly);
+
+                return (attackPriorityUnit, score);
             }
             else
             {
-                return null;
+                return (null, float.MinValue);
             }
         }
 
-        public BaseBuildingController GetAttackPriorityOpponentBuilding()
+        private (BaseUnitController,float) CalculateAttackPriorityUnit(List<BaseUnitController> opponentUnits)
+        {
+            if (opponentUnits == null || opponentUnits.Count <= 0)
+                return (null, float.MinValue);
+
+            BaseUnitController priorityUnit = null;
+            float highestScore = float.MinValue;
+
+            foreach (var opponentUnit in opponentUnits)
+            {
+                // Unit role score
+                float unitRoleScore = unitDatabase.CalculateUnitRoleTargetPriority(unitController, opponentUnit);
+
+                // Threat score
+                float threatScore = 1f;
+                if (IsUnitAttackedBy(opponentUnit))
+                {
+                    threatScore = 1.5f;
+                }
+
+                // Distance score
+                float distanceScore = CalculateDistanceToOpponentUnitScore(opponentUnit);
+
+                float totalScore = unitRoleScore * threatScore * distanceScore;
+
+                if (totalScore > highestScore)
+                {
+                    highestScore = totalScore;
+                    priorityUnit = opponentUnit;
+                }
+            }
+            return (priorityUnit, highestScore);
+        }
+
+        public (BaseBuildingController, float) GetAttackPriorityOpponentBuilding()
         {
             List<BaseBuildingController> opponentBuildingInRadius = GetOpponentBuildingInRadius();
 
-            // thresholding, just get nearest opponent building
-            BaseBuildingController nearestBuilding = GetNearestBuilding(opponentBuildingInRadius);
+            if (opponentBuildingInRadius.Count > 0)
+            {
+                (BaseBuildingController attackPriorityBuilding, float score) = CalculateAttackPriorityBuilding(opponentBuildingInRadius);
+            
+                return (attackPriorityBuilding, score);
+            }else
+            {
+                return (null, float.MinValue);
+            }
+        }
 
-            return nearestBuilding;
+        private (BaseBuildingController, float) CalculateAttackPriorityBuilding(List<BaseBuildingController> opponentBuildings)
+        {
+            if (opponentBuildings == null || opponentBuildings.Count <= 0)
+                return (null, float.MinValue);
+
+            BaseBuildingController priorityBuilding = null;
+            float highestScore = float.MinValue;
+
+            foreach (var opponentBuilding in opponentBuildings)
+            {
+                // Building category score
+                float categoryScore = 0.3f;
+                if (opponentBuilding.GetBuildingInfo().buildingCategory == BuildingCategory.Defensive)
+                {
+                    categoryScore = 1.5f;
+                }
+
+                // Distance score
+                float distanceScore = CalculateDistanceToOpponentBuildingScore(opponentBuilding);
+
+                float totalScore = categoryScore * distanceScore;
+                if (totalScore > highestScore)
+                {
+                    highestScore = totalScore;
+                    priorityBuilding = opponentBuilding;
+                }
+            }
+            return (priorityBuilding, highestScore);
         }
 
         #endregion
@@ -286,19 +359,19 @@ namespace RTS.AI.Micromanagement
 
         public void AttackPriorityOpponent(BaseUnitController unit)
         {
-            BaseUnitController opponentUnit = GetAttackPriorityOpponentUnit();
+            (BaseUnitController opponentUnit, float attackUnitScore) = GetAttackPriorityOpponentUnit();
+            (BaseBuildingController opponentBuilding, float attackBuildingScore) = GetAttackPriorityOpponentBuilding();
 
-            if (opponentUnit != null)
+            if (opponentUnit != null && attackUnitScore > attackBuildingScore)
             {
-                opponentUnit.GetMicromanagementUnitController().BeingAttacked(unit);
                 militaryUnitManager.IssueAttackCommand(new List<BaseUnitController>() { unit }, opponentUnit);
-            }
-
-            BaseBuildingController opponentBuilding = GetAttackPriorityOpponentBuilding();
-
-            if (opponentBuilding != null)
+                return;
+            }else
             {
-                militaryUnitManager.IssueAttackCommand(new List<BaseUnitController>() { unit }, opponentBuilding);
+                if (opponentBuilding != null)
+                {
+                    militaryUnitManager.IssueAttackCommand(new List<BaseUnitController>() { unit }, opponentBuilding);
+                }
             }
         }
 
@@ -362,21 +435,31 @@ namespace RTS.AI.Micromanagement
 
         private List<BaseUnitController> GetLesserAttackedUnits(List<BaseUnitController> opponentUnits)
         {
+            if (opponentUnits == null || opponentUnits.Count <= 0)
+                return new List<BaseUnitController>();
+
             List<BaseUnitController> lesserAttackedUnits = new List<BaseUnitController>();
-            int lesserCount = opponentUnits[0].GetMicromanagementUnitController().attackerUnits.Count;
+
+            int minCount = int.MaxValue;
+            foreach (var opponentUnit in opponentUnits)
+            {
+                int attackerCount = opponentUnit.GetMicromanagementUnitController().attackerUnits.Count;
+                if (attackerCount < minCount)
+                {
+                    minCount = attackerCount;
+                }
+            }
 
             foreach (var opponentUnit in opponentUnits)
             {
-                if (opponentUnit.GetMicromanagementUnitController().attackerUnits.Count < lesserCount)
+                int attackerCount = opponentUnit.GetMicromanagementUnitController().attackerUnits.Count;
+                if (attackerCount == minCount)
                 {
-                    lesserCount = opponentUnit.GetMicromanagementUnitController().attackerUnits.Count;
                     lesserAttackedUnits.Add(opponentUnit);
                 }
             }
-            if (lesserAttackedUnits.Count > 0)
-                return lesserAttackedUnits;
-            else
-                return opponentUnits;
+
+            return lesserAttackedUnits;
         }
 
         private BaseUnitController GetNearestUnit(List<BaseUnitController> units)
@@ -415,6 +498,33 @@ namespace RTS.AI.Micromanagement
             }
 
             return nearestOpponentBuilding;
+        }
+
+        public bool IsUnitAttackedBy(BaseUnitController unit)
+        {
+            return attackerUnits.ContainsKey(unit);
+        }
+
+        private float CalculateDistanceToOpponentUnitScore(BaseUnitController opponentUnit)
+        {
+            float distance = Vector3.Distance(unitController.transform.position, opponentUnit.transform.position);
+            float coefficient = 1.5f;
+
+            float DistanceRatio = distance / unitController.GetUnitInfo().lineOfSightRange;
+            float score = (1f - DistanceRatio + 0.01f) * coefficient;
+
+            return score;
+        }
+
+        private float CalculateDistanceToOpponentBuildingScore(BaseBuildingController opponentBuilding)
+        {
+            float distance = Vector3.Distance(unitController.transform.position, opponentBuilding.transform.position);
+            float coefficient = 1.5f;
+
+            float DistanceRatio = distance / unitController.GetUnitInfo().lineOfSightRange;
+            float score = (1f - DistanceRatio + 0.01f) * coefficient;
+
+            return score;
         }
 
         #endregion

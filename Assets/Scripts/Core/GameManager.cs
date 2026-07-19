@@ -400,7 +400,8 @@ namespace RTS.Core
         {
             BaseBuildingController barrack = InitiateBuilding(playerInfo, BuildingType.Barracks, new Vector3(25, 15, 0));
 
-            InitiateUnit(playerInfo, UnitType.Militia, barrack, 10);
+            InitiateUnit(playerInfo, UnitType.Militia, barrack, 8);
+            InitiateUnit(playerInfo, UnitType.Archer, barrack, 12);
         }
 
         private void InitiateDebugPlayer2(PlayerInfo playerInfo)
@@ -409,7 +410,8 @@ namespace RTS.Core
             BaseBuildingController granary = InitiateBuilding(playerInfo, BuildingType.Granary, new Vector3(50, 49, 0));
 
             InitiateUnit(playerInfo, UnitType.Militia, barrack, 5);
-            InitiateUnit(playerInfo, UnitType.Swordsman, granary, 3);
+            InitiateUnit(playerInfo, UnitType.Archer, barrack, 3);
+            InitiateUnit(playerInfo, UnitType.Scorpion, barrack, 2);
         }
 
         #endregion

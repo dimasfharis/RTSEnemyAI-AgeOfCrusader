@@ -39,12 +39,12 @@ namespace RTS.Units.Common.States
             {
                 if (unit.GetCurrentTargetUnit() != null)
                 {
-                    currentNearestTargetUnit = unit.GetMicromanagementUnitController().GetAttackPriorityOpponentUnit();
+                    currentNearestTargetUnit = unit.GetMicromanagementUnitController().GetAttackPriorityOpponentUnit().Item1;
                     unit.SetCurrentTargetUnit(currentNearestTargetUnit);
                 }
                 else
                 {
-                    currentNearestTargetBuilding = unit.GetMicromanagementUnitController().GetAttackPriorityOpponentBuilding();
+                    currentNearestTargetBuilding = unit.GetMicromanagementUnitController().GetAttackPriorityOpponentBuilding().Item1;
                     unit.SetCurrentTargetBuilding(currentNearestTargetBuilding);
                 }
             }

@@ -358,10 +358,8 @@ namespace RTS.Common.DataClass
 
             Debug.Log($"Player {playerInfo.PlayerNumber} Power: {militaryPower}, Player {enemyPlayerInfo[0].PlayerNumber} Power: {enemyMilitaryPower}");
 
-            if (militaryPower < (enemyMilitaryPower * 0.2f))
+            if (militaryPower < (enemyMilitaryPower * 0.1f))
             {
-                Debug.Log($"Player {playerInfo.PlayerNumber} is retreating");
-
                 militaryUnitManager.IssueRetreatCommand(units);
                 isEngaged = false;
 
