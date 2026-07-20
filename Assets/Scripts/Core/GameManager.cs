@@ -46,7 +46,7 @@ namespace RTS.Core
             PlayerInfo playerInfo = Players[doScout.playerNumber];
             MilitaryGoalExecutor militaryGoalExecutor = playerInfo.AIManager.GetEnemyBehaviorAIManager().GetGoalCoordinator().GetMilitaryGoalExecutor();
 
-            AIGoal goal = new AIGoal(AIGoalType.AssignScout, 0f);
+            AIGoal goal = new AIGoal(playerInfo, AIGoalType.AssignScout, 0f);
             goal.SetTargetPosition(doScout.scoutPosition);
 
             militaryGoalExecutor.Execute(goal);

@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using RTS.AI.Behavior;
 using RTS.Common.Enums;
 using RTS.Common.Structs;
 using RTS.Core;
@@ -29,9 +28,9 @@ namespace RTS.Managers
 
         #region Initialization
 
-        public ResourceManager(PlayerInfo playerInfo)
+        public ResourceManager(PlayerInfo owner)
         {
-            this.playerInfo = playerInfo;
+            this.playerInfo = owner;
 
             // init default values
             foreach (ResourceType type in System.Enum.GetValues(typeof(ResourceType)))
@@ -73,17 +72,7 @@ namespace RTS.Managers
 
         #endregion
 
-        #region Public API
-
-        public int GetAmount(ResourceType type)
-        {
-            return resources[type];
-        }
-
-        public float GetIncomeRate(ResourceType type)
-        {
-            return resourceIncomeRate[type];
-        }
+        #region Resource Needs Calculation
 
         public List<ResourceAmount> GetProductionResourceAmount(Dictionary<UnitType, int> unitComposition)
         {
@@ -125,6 +114,91 @@ namespace RTS.Managers
             }
 
             return resourceAmounts;
+        }
+
+        public List<ResourceAmount> GetStructureResourceAmount(Dictionary<BuildingType, int> structureComposition)
+        {
+            if (structureComposition == null)
+                return null;
+
+            List<ResourceAmount> resourceAmounts = new List<ResourceAmount>();
+
+            foreach (var structure in structureComposition)
+            {
+                var structureType = structure.Key;
+                var structureTypeQty = structure.Value;
+
+                List<ResourceAmount> costPerStructure = playerInfo.DataManager.buildingDatabase.GetBuildingCost(structureType);
+                foreach (ResourceAmount c in costPerStructure)
+                {
+                    ResourceAmount resourceAmount = new ResourceAmount
+                    {
+                        resourceType = c.resourceType,
+                        amount = c.amount * structureTypeQty
+                    };
+
+                    if (resourceAmounts.Exists(r => r.resourceType == resourceAmount.resourceType))
+                    {
+                        int newAmount = resourceAmount.amount + resourceAmounts.Find(r => r.resourceType == resourceAmount.resourceType).amount;
+                        resourceAmounts.RemoveAll(r => r.resourceType == resourceAmount.resourceType);
+                        
+                        resourceAmounts.Add(new ResourceAmount
+                        {
+                            resourceType = resourceAmount.resourceType,
+                            amount = newAmount
+                        });
+                    }
+                    else
+                    {
+                        resourceAmounts.Add(resourceAmount);
+                    }
+                }
+            }
+
+            return resourceAmounts;
+        }
+
+        public List<ResourceAmount> AddResourceAmount(List<ResourceAmount> selfResourceAmount, List<ResourceAmount> resourceAmounts)
+        {
+            if (selfResourceAmount == null)
+                selfResourceAmount = new List<ResourceAmount>();
+
+            if (resourceAmounts == null)
+                return selfResourceAmount;
+
+            foreach (ResourceAmount resource in resourceAmounts)
+            {
+                if (selfResourceAmount.Exists(r => r.resourceType == resource.resourceType))
+                {
+                    int newAmount = resource.amount + selfResourceAmount.Find(r => r.resourceType == resource.resourceType).amount;
+                    selfResourceAmount.RemoveAll(r => r.resourceType == resource.resourceType);
+                    
+                    selfResourceAmount.Add(new ResourceAmount
+                    {
+                        resourceType = resource.resourceType,
+                        amount = newAmount
+                    });
+                }
+                else
+                {
+                    selfResourceAmount.Add(resource);
+                }
+            }
+            return selfResourceAmount;
+        }
+
+        #endregion
+
+        #region Public API
+
+        public int GetAmount(ResourceType type)
+        {
+            return resources[type];
+        }
+
+        public float GetIncomeRate(ResourceType type)
+        {
+            return resourceIncomeRate[type];
         }
 
         public bool CanAfford(List<ResourceAmount> cost)

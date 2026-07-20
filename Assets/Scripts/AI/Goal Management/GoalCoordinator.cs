@@ -249,6 +249,11 @@ namespace RTS.AI.GoalManagement
             return militaryExecutor;
         }
 
+        public List<AIGoal> GetActiveGoals()
+        {
+            return activeGoals;
+        }
+
         #endregion
     }
 

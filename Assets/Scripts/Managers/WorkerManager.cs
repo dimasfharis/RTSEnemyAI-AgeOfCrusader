@@ -20,6 +20,8 @@ namespace RTS.Managers
 
         private readonly List<WorkerUnitController> workers = new List<WorkerUnitController>();
 
+        private const float workerBuildConstructionRatio = 0.2f; // Ratio of workers to construction goal
+
         #region Initialization
 
         public WorkerManager(PlayerInfo playerInfo)
@@ -52,7 +54,6 @@ namespace RTS.Managers
 
         #region Update Loop
 
-        // Called every frame from the GameplayManager
         public void Tick()
         {
             

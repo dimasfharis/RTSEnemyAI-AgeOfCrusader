@@ -3,11 +3,18 @@ using RTS.Units.Common;
 using UnityEngine;
 using System.Collections.Generic;
 using System;
+using RTS.Managers;
+using RTS.Core;
+using RTS.Common.Structs;
 
 namespace RTS.AI.Behavior
 {
     public class AIGoal
     {
+        // References
+        PlayerInfo playerInfo;
+        ResourceManager resourceManager;
+
         // Events
         public event Action<AIGoal> OnExecuteStarted;
         public event Action<int, int> OnProgressChanged;
@@ -29,7 +36,6 @@ namespace RTS.AI.Behavior
         public Dictionary<UnitType, int> UnitTrainingRequirements { get; private set; }
 
         // Optional Payload
-        public UnitType UnitType { get; private set; }
         public BuildingType BuildingType { get; private set; }
         public ResearchType ResearchType { get; private set; }
         public Vector3 TargetPosition { get; private set; }
@@ -37,8 +43,11 @@ namespace RTS.AI.Behavior
 
         #region Initialization
 
-        public AIGoal(AIGoalType type, float score)
+        public AIGoal(PlayerInfo playerInfo, AIGoalType type, float score)
         {
+            this.playerInfo = playerInfo;
+            resourceManager = playerInfo.ResourceManager;
+
             GoalType = type;
             Score = score;
 
@@ -47,7 +56,6 @@ namespace RTS.AI.Behavior
 
             currentProgress = 0;
             targetAmount = 0;
-            UnitType = UnitType.None;
             BuildingType = BuildingType.None;
             ResearchType = ResearchType.None;
             TargetPosition = Vector3.zero;
@@ -118,13 +126,36 @@ namespace RTS.AI.Behavior
 
         #endregion
 
-        #region Public API
+        #region Resource Needs
 
-        public AIGoal SetUnit(UnitType unitType)
+        public List<ResourceAmount> GetResourceNeeds()
         {
-            UnitType = unitType;
-            return this;
+            switch (GoalType)
+            {
+                case AIGoalType.TrainUnit:
+                    return GetTrainUnitResourceNeeds();
+
+                case AIGoalType.BuildStructure:
+                    return GetBuildStructureResourceNeeds();
+
+                default:
+                    return new List<ResourceAmount>();
+            }
         }
+
+        private List<ResourceAmount> GetTrainUnitResourceNeeds()
+        {
+            return resourceManager.GetProductionResourceAmount(UnitTrainingRequirements);
+        }
+
+        private List<ResourceAmount> GetBuildStructureResourceNeeds()
+        {
+            return resourceManager.GetStructureResourceAmount(new Dictionary<BuildingType, int> { { BuildingType, 1 } });
+        }
+
+        #endregion
+
+        #region Public API
 
         public AIGoal SetBuilding(BuildingType buildingType)
         {

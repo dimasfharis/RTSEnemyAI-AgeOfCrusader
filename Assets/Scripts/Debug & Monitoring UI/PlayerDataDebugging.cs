@@ -136,8 +136,17 @@ namespace RTS.Monitoring
                     {
                         goalActive = activeGoals[i].GoalType.ToString();
 
-                        if (activeGoals[i].UnitType != UnitType.None)
-                            payloadActive = $": {activeGoals[i].UnitType}";
+                        if (activeGoals[i].UnitTrainingRequirements != null && activeGoals[i].UnitTrainingRequirements.Count > 0)
+                        {
+                            string unitRequirements = "";
+
+                            foreach (var requirement in activeGoals[i].UnitTrainingRequirements)
+                            {
+                                unitRequirements += $"{requirement.Key} ";
+                            }
+
+                            payloadActive = $": {unitRequirements}";
+                        }
                         else if (activeGoals[i].BuildingType != BuildingType.None)
                             payloadActive = $": {activeGoals[i].BuildingType}";
                         else if (activeGoals[i].ResearchType != ResearchType.None)

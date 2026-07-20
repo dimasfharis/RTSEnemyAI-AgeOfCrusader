@@ -1,21 +1,38 @@
 using RTS.Core;
 using RTS.Data;
 using RTS.Common.Enums;
-using UnityEngine.UIElements;
+using RTS.AI.Behavior;
+using System.Collections.Generic;
+using RTS.AI.GoalManagement;
+using UnityEngine;
+using RTS.Common.Structs;
+using RTS.Managers;
 
 namespace RTS.AI.Resources
 {
     public class ResourceManagementAIManager
     {
         private PlayerInfo playerInfo;
+        private ResourceManager resourceManager;
         private DataManager dataManager;
+        private GoalCoordinator goalCoordinator;
+
+        private List<AIGoal> activeGoals;
+        private float activeGoalsUpdateTimer;
+        private const float activeGoalsUpdateInterval = 12f;
+
+        private Dictionary<ResourceType, float> currentResourceNeedsRatio;
 
         #region Initialization
 
         public ResourceManagementAIManager(PlayerInfo owner)
         {
             playerInfo = owner;
+            resourceManager = playerInfo.ResourceManager;
             dataManager = owner.DataManager;
+            goalCoordinator = playerInfo.AIManager.GetEnemyBehaviorAIManager().GetGoalCoordinator();
+
+            activeGoals = new List<AIGoal>();
         }
 
         #endregion
@@ -24,7 +41,68 @@ namespace RTS.AI.Resources
 
         public void Tick()
         {
-            
+            UpdateResourceNeedsRatio();
+        }
+
+        #endregion
+
+        #region Goal Priority Resource Needs
+
+        private void UpdateResourceNeedsRatio()
+        {
+            // Update the list of active goals
+            UpdateActiveGoals();
+
+            // Extract resource needs from active goals
+            List<ResourceAmount> resourceNeeds = ExtractResourceNeedsFromGoals();
+
+            // Calculate the ratio of resource needs
+            currentResourceNeedsRatio = CalculateResourceNeedsRatio(resourceNeeds);
+        }
+
+        private void UpdateActiveGoals()
+        {
+            activeGoalsUpdateTimer += Time.deltaTime;
+
+            if (activeGoalsUpdateTimer >= activeGoalsUpdateInterval)
+            {
+                activeGoalsUpdateTimer = 0f;
+                activeGoals = goalCoordinator.GetActiveGoals();
+            }
+        }
+
+        private List<ResourceAmount> ExtractResourceNeedsFromGoals()
+        {
+            List<ResourceAmount> resourceNeeds = new List<ResourceAmount>();
+
+            foreach (AIGoal goal in activeGoals)
+            {
+                List<ResourceAmount> needs = goal.GetResourceNeeds();
+
+                resourceNeeds = resourceManager.AddResourceAmount(resourceNeeds, needs);
+            }
+
+            return resourceNeeds;
+        }
+
+        private Dictionary<ResourceType, float> CalculateResourceNeedsRatio(List<ResourceAmount> resourceNeeds)
+        {
+            Dictionary<ResourceType, float> needsRatio = new Dictionary<ResourceType, float>();
+            float totalNeeds = 0f;
+
+            foreach (ResourceAmount need in resourceNeeds)
+            {
+                totalNeeds += need.amount;
+            }
+
+            foreach (ResourceAmount need in resourceNeeds)
+            {
+                float ratio = (float)need.amount / totalNeeds;
+
+                needsRatio[need.resourceType] = ratio;
+            }
+
+            return needsRatio;
         }
 
         #endregion
@@ -37,18 +115,6 @@ namespace RTS.AI.Resources
             {
                 case AIStrategyMode.Economic:
                     FocusBalancedEconomy();
-                    break;
-
-                case AIStrategyMode.Attack:
-                    FocusMilitaryResource();
-                    break;
-
-                case AIStrategyMode.Defend:
-                    FocusDefensiveStability();
-                    break;
-
-                case AIStrategyMode.Recovery:
-                    FocusFastRecovery();
                     break;
             }
         }
@@ -101,21 +167,6 @@ namespace RTS.AI.Resources
                 return ResourceType.Stone;
 
             return ResourceType.Gold;
-        }
-
-        private void FocusMilitaryResource()
-        {
-            
-        }
-
-        private void FocusDefensiveStability()
-        {
-            
-        }
-
-        private void FocusFastRecovery()
-        {
-            
         }
 
         #endregion

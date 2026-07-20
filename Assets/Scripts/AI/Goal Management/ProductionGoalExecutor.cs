@@ -87,7 +87,7 @@ namespace RTS.AI.GoalManagement
 
         private bool TryExecuteTrain(AIGoal goal)
         {
-            // Get Unit Type to be trained
+            /*// Get Unit Type to be trained
             UnitType unitType = goal.UnitType;
 
             // Unit Production Check
@@ -108,7 +108,7 @@ namespace RTS.AI.GoalManagement
                         return true;
                     }
                 }
-            }
+            }*/
 
             return false;
         }

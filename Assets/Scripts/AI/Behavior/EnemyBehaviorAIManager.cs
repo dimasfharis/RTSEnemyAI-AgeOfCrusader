@@ -78,9 +78,9 @@ namespace RTS.AI.Behavior
                 aiProfile.MilitaryMultiplier *
                 GetStrategyMultiplier(AIGoalType.TrainUnit, 1);
 
-            currentGoals.Add(
-                new AIGoal(AIGoalType.TrainUnit, workerScore)
-                .SetUnit(UnitType.Worker));
+            AIGoal trainWorkerGoal = new AIGoal(playerInfo, AIGoalType.TrainUnit, workerScore);
+            trainWorkerGoal.SetUnitTrainingRequirements(new Dictionary<UnitType, int> { { UnitType.Worker, 1 } });
+            currentGoals.Add(trainWorkerGoal);
 
             if (goalCoordinator.unitRequests.Count > 0)
                 currentGoals.AddRange(GetMilitaryGoalMultiplied(militaryScore));
@@ -98,7 +98,7 @@ namespace RTS.AI.Behavior
             foreach (var request in goalCoordinator.unitRequests)
             {
                 float score = baseScore * request.Key.Score;
-                AIGoal goal = new AIGoal(AIGoalType.TrainUnit, score);
+                AIGoal goal = new AIGoal(playerInfo, AIGoalType.TrainUnit, score);
 
                 goal.SetUnitTrainingRequirements(request.Value.unitRequests);
 
@@ -144,19 +144,19 @@ namespace RTS.AI.Behavior
                 GetStrategyMultiplier(AIGoalType.ReinforceDefense);
 
             currentGoals.Add(
-                new AIGoal(AIGoalType.BuildStructure, ecoScore)
+                new AIGoal(playerInfo, AIGoalType.BuildStructure, ecoScore)
                 .SetBuilding(ecoBuildingTypeNeeded));
 
             currentGoals.Add(
-                new AIGoal(AIGoalType.BuildStructure, militaryScore)
+                new AIGoal(playerInfo, AIGoalType.BuildStructure, militaryScore)
                 .SetBuilding(milBuildingTypeNeeded));
 
             currentGoals.Add(
-                new AIGoal(AIGoalType.BuildStructure, buildDefenseScore)
+                new AIGoal(playerInfo, AIGoalType.BuildStructure, buildDefenseScore)
                 .SetBuilding(defBuildingTypeNeeded));
 
             currentGoals.Add(
-                new AIGoal(AIGoalType.ReinforceDefense, defenseScore));
+                new AIGoal(playerInfo, AIGoalType.ReinforceDefense, defenseScore));
         }
 
         #endregion
@@ -175,7 +175,7 @@ namespace RTS.AI.Behavior
                 GetStrategyMultiplier(AIGoalType.ResearchUpgrade);
 
             currentGoals.Add(
-                new AIGoal(AIGoalType.ResearchUpgrade, researchScore)
+                new AIGoal(playerInfo, AIGoalType.ResearchUpgrade, researchScore)
                 .SetResearch(researchTypeNeeded));
         }
 
@@ -205,13 +205,13 @@ namespace RTS.AI.Behavior
                 GetStrategyMultiplier(AIGoalType.AssignHarassment);
 
             currentGoals.Add(
-                new AIGoal(AIGoalType.LaunchAttackWave, attackScore));
+                new AIGoal(playerInfo, AIGoalType.LaunchAttackWave, attackScore));
 
             currentGoals.Add(
-                new AIGoal(AIGoalType.AssignScout, patrolScore));
+                new AIGoal(playerInfo, AIGoalType.AssignScout, patrolScore));
 
             currentGoals.Add(
-                new AIGoal(AIGoalType.AssignHarassment, harassmentScore));
+                new AIGoal(playerInfo, AIGoalType.AssignHarassment, harassmentScore));
         }
 
         #endregion
