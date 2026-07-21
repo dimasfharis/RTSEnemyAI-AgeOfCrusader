@@ -181,14 +181,14 @@ namespace RTS.Units.Worker
 
         #region Accessors
 
+        public ResourceType GetCurrentResourceType()
+        {
+            return currentResourceType;
+        }
+
         public ResourceNode GetCurrentResourceNode()
         {
             return currentResourceNode;
-        }
-
-        public BaseBuildingController GetCurrentBuildingController()
-        {
-            return curBaseBuildingController;
         }
 
         public BaseBuildingController GetDepositBuilding()

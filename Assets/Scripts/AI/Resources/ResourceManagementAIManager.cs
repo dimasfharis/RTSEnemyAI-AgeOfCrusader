@@ -125,7 +125,7 @@ namespace RTS.AI.Resources
 
         private void EnsureWorkerProduction()
         {
-            int currentWorkers = playerInfo.WorkerManager.GetWorkerCount();
+            int currentWorkers = playerInfo.WorkerManager.GetAllUnits().Count;
 
             if (currentWorkers < 10) // Example threshold
             {
@@ -167,6 +167,15 @@ namespace RTS.AI.Resources
                 return ResourceType.Stone;
 
             return ResourceType.Gold;
+        }
+
+        #endregion
+
+        #region Public API
+
+        public Dictionary<ResourceType, float> GetCurrentResourceNeedsRatio()
+        {
+            return currentResourceNeedsRatio;
         }
 
         #endregion

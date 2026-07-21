@@ -7,6 +7,7 @@ using RTS.Buildings.Data;
 using RTS.Buildings.Common;
 using RTS.Units.Common;
 using RTS.Managers.Research;
+using RTS.AI.Resources;
 
 namespace RTS.Managers
 {
@@ -15,10 +16,16 @@ namespace RTS.Managers
         [Header("References")]
         private BuildingDatabase buildingDatabase;
         private ResearchManager researchManager;
+        private ResourceManagementAIManager resourceManagementAIManager;
 
         private readonly PlayerInfo playerInfo;
 
         private readonly List<WorkerUnitController> workers = new List<WorkerUnitController>();
+
+        private Dictionary<ResourceType, float> currentResourceNeedsRatio;
+        private Dictionary<ResourceType, int> currentWorkerAllocation;
+        private float updateWorkerAllocationTimer;
+        private const float updateWorkerAllocationInterval = 12f;
 
         private const float workerBuildConstructionRatio = 0.2f; // Ratio of workers to construction goal
 
@@ -56,7 +63,103 @@ namespace RTS.Managers
 
         public void Tick()
         {
-            
+            updateWorkerAllocationTimer += Time.deltaTime;
+
+            if (updateWorkerAllocationTimer > updateWorkerAllocationInterval)
+            {
+                updateWorkerAllocationTimer = 0;
+
+                // Update resource needs ratio
+                UpdateResourceNeedsRatio();
+
+                // Update worker allocation
+                UpdateWorkerAllocation();
+
+                // Update worker action
+                UpdateWorkerGatheringAction();
+            }
+        }
+
+        #endregion
+
+        #region Resource Gathering Priority
+
+        private void UpdateResourceNeedsRatio()
+        {
+            ResourceManagementAIManager resourceAIManager = null;
+            if (resourceManagementAIManager == null)
+            {
+                resourceAIManager = playerInfo.AIManager.GetResourceManagementAIManager();
+
+                if (resourceAIManager == null)
+                    return;
+
+                currentResourceNeedsRatio = resourceAIManager.GetCurrentResourceNeedsRatio();
+            }
+            else
+            {
+                currentResourceNeedsRatio = resourceAIManager.GetCurrentResourceNeedsRatio();
+            }
+        }
+
+        private void UpdateWorkerAllocation()
+        {
+            if (currentResourceNeedsRatio == null
+                || currentResourceNeedsRatio.Count <= 0
+                || GetAllUnits().Count <= 0)
+                return;
+
+            Dictionary<ResourceType, int> newWorkerAllocation = new Dictionary<ResourceType, int>();
+            int allWorkerCount = GetAllUnits().Count;
+            int resourceGatheringWorkerCount = Mathf.CeilToInt(allWorkerCount * (1f - workerBuildConstructionRatio));
+
+            int remainingWorkers = resourceGatheringWorkerCount;
+            ResourceType highestRatioResource = default;
+            float maxRatio = float.MinValue;
+
+            foreach (var resource in currentResourceNeedsRatio)
+            {
+                int allocated = Mathf.FloorToInt(resource.Value * resourceGatheringWorkerCount);
+
+                newWorkerAllocation[resource.Key] = allocated;
+                remainingWorkers -= allocated;
+
+                if (resource.Value >  maxRatio)
+                {
+                    maxRatio = resource.Value;
+                    highestRatioResource = resource.Key;
+                }
+            }
+
+            if (remainingWorkers > 0 && maxRatio > 0)
+            {
+                newWorkerAllocation[highestRatioResource] += remainingWorkers;
+            }
+
+            currentWorkerAllocation = newWorkerAllocation;
+        }
+
+        private void UpdateWorkerGatheringAction()
+        {
+            if (GetAllUnits().Count <= 0)
+                return;
+
+            Dictionary<ResourceType, int> workerAllocationCount = new Dictionary<ResourceType, int>();
+
+            foreach (var worker in GetAllUnits())
+            {
+                if (workerAllocationCount[worker.GetCurrentResourceType()] < currentWorkerAllocation[worker.GetCurrentResourceType()])
+                {
+                    workerAllocationCount[worker.GetCurrentResourceType()]++;
+
+                }else if(workerAllocationCount[worker.GetCurrentResourceType()] == currentWorkerAllocation[worker.GetCurrentResourceType()])
+                {
+
+                }else
+                {
+
+                }
+            }
         }
 
         #endregion
@@ -129,11 +232,6 @@ namespace RTS.Managers
         public List<WorkerUnitController> GetAllUnits()
         {
             return workers;
-        }
-
-        public int GetWorkerCount()
-        {
-            return workers.Count;
         }
 
         public List<WorkerUnitController> GetIdleWorkers()

@@ -64,7 +64,7 @@ namespace RTS.Data
 
         public int GetWorkerCount()
         {
-            return workerManager.GetWorkerCount();
+            return workerManager.GetAllUnits().Count;
         }
 
         public int GetIdealWorkerCount()

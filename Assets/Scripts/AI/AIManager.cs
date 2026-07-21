@@ -71,6 +71,11 @@ namespace RTS.AI
             return decisionAI;
         }
 
+        public ResourceManagementAIManager GetResourceManagementAIManager()
+        {
+            return resourceAI;
+        }
+
         public EnemyBehaviorAIManager GetEnemyBehaviorAIManager()
         {
             return enemyAI;
