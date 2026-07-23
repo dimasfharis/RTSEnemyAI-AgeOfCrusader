@@ -15,7 +15,7 @@ namespace RTS.Units.Worker
     {
         [Header("Runtime Data")]
         // Resource Gathering
-        private ResourceType currentResourceType;
+        private ResourceType currentResourceType = ResourceType.None;
         private ResourceNode currentResourceNode;
         private BaseBuildingController currentDepositBuilding;
 
@@ -83,47 +83,14 @@ namespace RTS.Units.Worker
             return false;
         }
 
-        private Vector3 GetNearestResourceNode(ResourceType resourceType)
+        public void StopGathering()
         {
-            Vector3 nearestNode = mapManager.GetNearestResourceNodeFromPosition(
-                GetNearestDepositBuildingPosition(resourceType), resourceType);
+            currentResourceType = ResourceType.None;
+            currentResourceNode = null;
+            currentDepositBuilding = null;
+            unitInfo.carryingAmount = 0;
 
-            if (nearestNode == null)
-            {
-                Debug.LogWarning("No resource node found for type: " + resourceType);
-                return Vector3.zero;
-            }
-
-            return nearestNode;
-        }
-
-        public ResourceNode GetNearestResourceNodeObject()
-        {
-            ResourceNode nearestNode = resourceNodeManager.GetNearestResourceNodeInRadius(
-                transform.position, unitInfo.lineOfSightRange, currentResourceType);
-
-            if (nearestNode == null)
-            {
-                Debug.LogWarning("No resource node found for type: " + currentResourceType);
-                return null;
-            }
-
-            return nearestNode;
-        }
-
-        private Vector3 GetNearestDepositBuildingPosition(ResourceType resourceType)
-        {
-            BaseBuildingController nearestDeposit = playerInfo.BuildingManager.GetNearestDepositBuilding(transform.position, resourceType);
-
-            if (nearestDeposit == null)
-            {
-                Debug.LogWarning("No deposit building found for resource type: " + resourceType);
-                return Vector3.zero;
-            }
-
-            currentDepositBuilding = nearestDeposit;
-
-            return nearestDeposit.transform.position;
+            this.StopMovement();
         }
 
         #endregion
@@ -214,6 +181,53 @@ namespace RTS.Units.Worker
         public bool IsWorkerIdle()
         {
             return currentState is IdleState;
+        }
+
+        #endregion
+
+        #region Helper
+
+        private Vector3 GetNearestResourceNode(ResourceType resourceType)
+        {
+            Vector3 nearestNode = mapManager.GetNearestResourceNodeFromPosition(
+                GetNearestDepositBuildingPosition(resourceType), resourceType);
+
+            if (nearestNode == null)
+            {
+                Debug.LogWarning("No resource node found for type: " + resourceType);
+                return Vector3.zero;
+            }
+
+            return nearestNode;
+        }
+
+        public ResourceNode GetNearestResourceNodeObject()
+        {
+            ResourceNode nearestNode = resourceNodeManager.GetNearestResourceNodeInRadius(
+                transform.position, unitInfo.lineOfSightRange, currentResourceType);
+
+            if (nearestNode == null)
+            {
+                Debug.LogWarning("No resource node found for type: " + currentResourceType);
+                return null;
+            }
+
+            return nearestNode;
+        }
+
+        private Vector3 GetNearestDepositBuildingPosition(ResourceType resourceType)
+        {
+            BaseBuildingController nearestDeposit = playerInfo.BuildingManager.GetNearestDepositBuilding(transform.position, resourceType);
+
+            if (nearestDeposit == null)
+            {
+                Debug.LogWarning("No deposit building found for resource type: " + resourceType);
+                return Vector3.zero;
+            }
+
+            currentDepositBuilding = nearestDeposit;
+
+            return nearestDeposit.transform.position;
         }
 
         #endregion

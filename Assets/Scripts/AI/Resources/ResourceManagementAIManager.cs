@@ -21,6 +21,7 @@ namespace RTS.AI.Resources
         private float activeGoalsUpdateTimer;
         private const float activeGoalsUpdateInterval = 12f;
 
+        private List<ResourceAmount> resourceNeeds;
         private Dictionary<ResourceType, float> currentResourceNeedsRatio;
 
         #region Initialization
@@ -30,7 +31,6 @@ namespace RTS.AI.Resources
             playerInfo = owner;
             resourceManager = playerInfo.ResourceManager;
             dataManager = owner.DataManager;
-            goalCoordinator = playerInfo.AIManager.GetEnemyBehaviorAIManager().GetGoalCoordinator();
 
             activeGoals = new List<AIGoal>();
         }
@@ -41,6 +41,10 @@ namespace RTS.AI.Resources
 
         public void Tick()
         {
+            // Getting goalcoordinator if not yet
+            if (goalCoordinator == null)
+                goalCoordinator = playerInfo.AIManager.GetEnemyBehaviorAIManager().GetGoalCoordinator();
+
             UpdateResourceNeedsRatio();
         }
 
@@ -54,7 +58,7 @@ namespace RTS.AI.Resources
             UpdateActiveGoals();
 
             // Extract resource needs from active goals
-            List<ResourceAmount> resourceNeeds = ExtractResourceNeedsFromGoals();
+            resourceNeeds = ExtractResourceNeedsFromGoals();
 
             // Calculate the ratio of resource needs
             currentResourceNeedsRatio = CalculateResourceNeedsRatio(resourceNeeds);
@@ -176,6 +180,18 @@ namespace RTS.AI.Resources
         public Dictionary<ResourceType, float> GetCurrentResourceNeedsRatio()
         {
             return currentResourceNeedsRatio;
+        }
+
+        public int GetAllResourceNeedsAmount()
+        {
+            int amount = 0;
+
+            foreach (var resourceAmount in resourceNeeds)
+            {
+                amount += resourceAmount.amount;
+            }
+
+            return amount;
         }
 
         #endregion

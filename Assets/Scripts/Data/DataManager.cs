@@ -69,10 +69,7 @@ namespace RTS.Data
 
         public int GetIdealWorkerCount()
         {
-            int resourceNodes = resourceNodeManager.GetTotalActiveNodes();
-            int maxWorkerPerNode = 1;
-
-            return resourceNodes * maxWorkerPerNode;
+            return workerManager.GetIdealWorkerCount();
         }
 
         #endregion

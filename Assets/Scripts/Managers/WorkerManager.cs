@@ -22,6 +22,13 @@ namespace RTS.Managers
 
         private readonly List<WorkerUnitController> workers = new List<WorkerUnitController>();
 
+        // Worker Unit Train Needs
+        private float checkWorkerTrainNeedsTimer;
+        private const float checkWorkerTrainNeedsInterval = 5f;
+        private const float idealWorkerCountPerResource = 0.06f;
+        private int idealWorkerCountScore;
+
+        // Worker Gathering Resource Allocation
         private Dictionary<ResourceType, float> currentResourceNeedsRatio;
         private Dictionary<ResourceType, int> currentWorkerAllocation;
         private float updateWorkerAllocationTimer;
@@ -64,6 +71,7 @@ namespace RTS.Managers
         public void Tick()
         {
             updateWorkerAllocationTimer += Time.deltaTime;
+            checkWorkerTrainNeedsTimer += Time.deltaTime;
 
             if (updateWorkerAllocationTimer > updateWorkerAllocationInterval)
             {
@@ -78,6 +86,13 @@ namespace RTS.Managers
                 // Update worker action
                 UpdateWorkerGatheringAction();
             }
+
+            if (checkWorkerTrainNeedsTimer > checkWorkerTrainNeedsInterval)
+            {
+                checkWorkerTrainNeedsTimer = 0;
+
+                CheckWorkerNeeds();
+            }
         }
 
         #endregion
@@ -86,19 +101,18 @@ namespace RTS.Managers
 
         private void UpdateResourceNeedsRatio()
         {
-            ResourceManagementAIManager resourceAIManager = null;
             if (resourceManagementAIManager == null)
             {
-                resourceAIManager = playerInfo.AIManager.GetResourceManagementAIManager();
+                resourceManagementAIManager = playerInfo.AIManager.GetResourceManagementAIManager();
 
-                if (resourceAIManager == null)
+                if (resourceManagementAIManager == null)
                     return;
 
-                currentResourceNeedsRatio = resourceAIManager.GetCurrentResourceNeedsRatio();
+                currentResourceNeedsRatio = resourceManagementAIManager.GetCurrentResourceNeedsRatio();
             }
             else
             {
-                currentResourceNeedsRatio = resourceAIManager.GetCurrentResourceNeedsRatio();
+                currentResourceNeedsRatio = resourceManagementAIManager.GetCurrentResourceNeedsRatio();
             }
         }
 
@@ -124,7 +138,7 @@ namespace RTS.Managers
                 newWorkerAllocation[resource.Key] = allocated;
                 remainingWorkers -= allocated;
 
-                if (resource.Value >  maxRatio)
+                if (resource.Value > maxRatio)
                 {
                     maxRatio = resource.Value;
                     highestRatioResource = resource.Key;
@@ -141,23 +155,52 @@ namespace RTS.Managers
 
         private void UpdateWorkerGatheringAction()
         {
-            if (GetAllUnits().Count <= 0)
+            if (currentResourceNeedsRatio == null
+                || currentResourceNeedsRatio.Count <= 0
+                || GetAllUnits().Count <= 0)
                 return;
 
-            Dictionary<ResourceType, int> workerAllocationCount = new Dictionary<ResourceType, int>();
+            Dictionary<ResourceType, int> workerAllocationNeedsCount = new Dictionary<ResourceType, int>();
+            List <WorkerUnitController> freedWorkers = new List<WorkerUnitController>();
 
-            foreach (var worker in GetAllUnits())
+            // Determine worker allocation needs
+            // and freed resource that has more worker
+            foreach (var resource in currentWorkerAllocation)
             {
-                if (workerAllocationCount[worker.GetCurrentResourceType()] < currentWorkerAllocation[worker.GetCurrentResourceType()])
-                {
-                    workerAllocationCount[worker.GetCurrentResourceType()]++;
+                List<WorkerUnitController> gatheringWorkers = GetGatheringWorker(resource.Key);
 
-                }else if(workerAllocationCount[worker.GetCurrentResourceType()] == currentWorkerAllocation[worker.GetCurrentResourceType()])
+                if (gatheringWorkers.Count < currentWorkerAllocation[resource.Key])
                 {
-
-                }else
+                    if (workerAllocationNeedsCount.ContainsKey(resource.Key))
+                    {
+                        workerAllocationNeedsCount[resource.Key] += currentWorkerAllocation[resource.Key] - gatheringWorkers.Count;
+                    }else
+                    {
+                        workerAllocationNeedsCount[resource.Key] = currentWorkerAllocation[resource.Key] - gatheringWorkers.Count;
+                    }
+                }else if (gatheringWorkers.Count > currentWorkerAllocation[resource.Key])
                 {
+                    List<WorkerUnitController> unitFreeded = StopWorkerFromGatheringResource(resource.Key, gatheringWorkers.Count - currentWorkerAllocation[resource.Key]);
+                    freedWorkers.AddRange(unitFreeded);
+                }
+            }
 
+            // Getting non gathering and construction worker
+            List<WorkerUnitController> nonGatheringWorkers = GetAllUnits().FindAll(
+                worker => worker.GetCurrentBuildingTemplate() == null
+                && worker.GetCurrentResourceType() == ResourceType.None);
+            if (nonGatheringWorkers != null || nonGatheringWorkers.Count > 0)
+            {
+                freedWorkers.AddRange(nonGatheringWorkers);
+            }
+
+            // Fulfilling the worker allocation needs determined
+            foreach (var workerNeed in workerAllocationNeedsCount)
+            {
+                if (workerNeed.Value > 0 && freedWorkers.Count >= workerNeed.Value)
+                {
+                    List<WorkerUnitController> workerToGather = freedWorkers.GetRange(0, workerNeed.Value);
+                    AssignWorkerToGather(workerToGather, workerNeed.Key);
                 }
             }
         }
@@ -172,6 +215,49 @@ namespace RTS.Managers
             {
                 worker.SetWorkerToGather(resourceType);
             }
+        }
+
+        private List<WorkerUnitController> StopWorkerFromGatheringResource(ResourceType resourceType, int amount)
+        {
+            List<WorkerUnitController> workerInResource = GetGatheringWorker(resourceType);
+
+            if (workerInResource.Count < amount)
+                return null;
+
+            List<WorkerUnitController> freedUnit = workerInResource.GetRange(0, amount);
+            StopWorkersFromGather(freedUnit);
+
+            return freedUnit;
+        }
+
+        public void StopWorkersFromGather(List<WorkerUnitController> workers)
+        {
+            if (workers.Count <= 0)
+                return;
+
+            foreach (var worker in workers)
+            {
+                worker.StopGathering();
+            }
+        }
+
+        #endregion
+
+        #region Worker Train Needs
+
+        private void CheckWorkerNeeds()
+        {
+            if (resourceManagementAIManager == null)
+                return;
+
+            int allResourceNeedsAmount = resourceManagementAIManager.GetAllResourceNeedsAmount();
+
+            idealWorkerCountScore = Mathf.CeilToInt(allResourceNeedsAmount * idealWorkerCountPerResource);
+        }
+
+        public int GetIdealWorkerCount()
+        {
+            return idealWorkerCountScore;
         }
 
         #endregion
@@ -223,58 +309,6 @@ namespace RTS.Managers
                 return false;
 
             return true;
-        }
-
-        #endregion
-
-        #region Public API
-
-        public List<WorkerUnitController> GetAllUnits()
-        {
-            return workers;
-        }
-
-        public List<WorkerUnitController> GetIdleWorkers()
-        {
-            List<WorkerUnitController> idleWorkers = new List<WorkerUnitController>();
-
-            foreach (var worker in workers)
-            {
-                if (worker.IsWorkerIdle())
-                {
-                    idleWorkers.Add(worker);
-                }
-            }
-
-            return idleWorkers;
-        }
-
-        public List<WorkerUnitController> GetWorkersInRadius(Vector3 position, float radius)
-        {
-            var workersInArea = new List<WorkerUnitController>();
-
-            foreach (var worker in workers)
-            {
-                if (Vector3.Distance(worker.transform.position, position) <= radius)
-                {
-                    workersInArea.Add(worker);
-                }
-            }
-
-            return workersInArea;
-        }
-
-        public BaseUnitController GetWorkerAtPosition(Vector3 position)
-        {
-            foreach (var worker in workers)
-            {
-                if (Vector3.Distance(worker.transform.position, position) < 0.7f)
-                {
-                    return worker;
-                }
-            }
-
-            return null;
         }
 
         #endregion
@@ -333,6 +367,75 @@ namespace RTS.Managers
                 float upgradedValue = worker.GetUnitInfo().attackDamage * amount;
                 worker.GetUnitInfo().attackDamage *= (int) upgradedValue;
             }
+        }
+
+        #endregion
+
+        #region Public API
+
+        public List<WorkerUnitController> GetAllUnits()
+        {
+            return workers;
+        }
+
+        public List<WorkerUnitController> GetIdleWorkers()
+        {
+            List<WorkerUnitController> idleWorkers = new List<WorkerUnitController>();
+
+            foreach (var worker in workers)
+            {
+                if (worker.IsWorkerIdle())
+                {
+                    idleWorkers.Add(worker);
+                }
+            }
+
+            return idleWorkers;
+        }
+
+        public List<WorkerUnitController> GetWorkersInRadius(Vector3 position, float radius)
+        {
+            var workersInArea = new List<WorkerUnitController>();
+
+            foreach (var worker in workers)
+            {
+                if (Vector3.Distance(worker.transform.position, position) <= radius)
+                {
+                    workersInArea.Add(worker);
+                }
+            }
+
+            return workersInArea;
+        }
+
+        public BaseUnitController GetWorkerAtPosition(Vector3 position)
+        {
+            foreach (var worker in workers)
+            {
+                if (Vector3.Distance(worker.transform.position, position) < 0.7f)
+                {
+                    return worker;
+                }
+            }
+
+            return null;
+        }
+
+        #endregion
+
+        #region Helper
+
+        private List<WorkerUnitController> GetGatheringWorker(ResourceType resourceType)
+        {
+            var gatheringWorkers = new List<WorkerUnitController>();
+
+            foreach (var worker in workers)
+            {
+                if (worker.GetCurrentResourceType() == resourceType)
+                    gatheringWorkers.Add(worker);
+            }
+
+            return gatheringWorkers;
         }
 
         #endregion

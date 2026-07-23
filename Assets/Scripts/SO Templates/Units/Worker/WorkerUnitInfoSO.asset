@@ -29,5 +29,5 @@ MonoBehaviour:
   attackPower: 0
   moveSpeed: 0.7
   lineOfSightRange: 4
-  carryingCapacity: 9
+  carryingCapacity: 6
   buildSpeed: 1

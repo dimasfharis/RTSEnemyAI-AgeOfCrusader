@@ -292,6 +292,30 @@ namespace RTS.Core
 
         #endregion
 
+        #region Stop Gathering
+
+        [SerializeField] private StopResourceGathering stopResourceGathering;
+
+        [System.Serializable]
+        public struct StopResourceGathering
+        {
+            public List<WorkerUnitController> workers;
+        }
+
+        [ContextMenu("Stop Resource Gathering")]
+        public void TestStopWorkerResourceGathering()
+        {
+            PlayerInfo player = Players[1];
+            WorkerManager workerManager = player.WorkerManager;
+
+            foreach (var worker in stopResourceGathering.workers)
+            {
+                worker.StopGathering();
+            }
+        }
+
+        #endregion
+
         #region Unit Pathfinding
 
         [SerializeField] private UnitPathfinding unitPathfinding;
