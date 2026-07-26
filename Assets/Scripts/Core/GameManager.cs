@@ -29,6 +29,31 @@ namespace RTS.Core
 
         #region Unit Testing (developer purpose only)
 
+        #region Do Reinforce Defense
+
+        [SerializeField] private DoDefense doDefense;
+
+        [System.Serializable]
+        public struct DoDefense
+        {
+            public int playerNumber;
+            public Vector3 defensePosition;
+        }
+
+        [ContextMenu("Do Defense")]
+        public void TestDoDefense()
+        {
+            PlayerInfo playerInfo = Players[doDefense.playerNumber];
+            MilitaryGoalExecutor militaryGoalExecutor = playerInfo.AIManager.GetEnemyBehaviorAIManager().GetGoalCoordinator().GetMilitaryGoalExecutor();
+
+            AIGoal goal = new AIGoal(playerInfo, AIGoalType.ReinforceDefense, 0f);
+            goal.SetTargetPosition(doDefense.defensePosition);
+
+            militaryGoalExecutor.Execute(goal);
+        }
+
+        #endregion
+
         #region Do Scout
 
         [SerializeField] private DoScout doScout;
