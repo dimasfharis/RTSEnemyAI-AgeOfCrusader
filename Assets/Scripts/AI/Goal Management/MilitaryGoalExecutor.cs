@@ -31,6 +31,8 @@ namespace RTS.AI.GoalManagement
         // Requirement Parameters
         private int requiredUnitsForScout = 2;
         private int requiredTilesForScout = 300;
+        private int requiredUnitsForDefense = 2;
+        private int requiredDefenseTime = 55;
 
         #region Initialization
 
@@ -110,7 +112,7 @@ namespace RTS.AI.GoalManagement
                     break;
 
                 case AIGoalType.ReinforceDefense:
-                    //ExecuteReinforceDefense(goal);
+                    ExecuteReinforceDefense(goal);
                     break;
             }
         }
@@ -289,6 +291,20 @@ namespace RTS.AI.GoalManagement
 
         private void ExecuteReinforceDefense(AIGoal goal)
         {
+            if (!CanExecuteDefense(goal))
+            {
+                FulfillDefenseRequirements(goal);
+                return;
+            }
+
+            if (!activeGroups.ContainsKey(goal))
+            {
+                InitDefenseGroup(goal);
+                goal.OnExecuteStarted += Defense_OnExecuteStarted;
+                goal.OnCompleted += Defense_OnCompleted;
+            }
+
+            /////////
             if (!activeGroups.ContainsKey(goal))
             {
                 InitReinforceDefenseGroup(goal);
@@ -302,6 +318,67 @@ namespace RTS.AI.GoalManagement
             {
                 // militaryUnitManager.IssueMoveCommand(group.Units, defensePoint);
             }
+        }
+
+        private bool CanExecuteDefense(AIGoal goal)
+        {
+            // Check if there are duplicated defense goal
+
+            // Check if there are units available for defense
+            if (militaryUnitManager.GetAvailableUnits().Count < requiredUnitsForDefense)
+                return false;
+
+            return true;
+        }
+
+        private void FulfillDefenseRequirements(AIGoal goal)
+        {
+            if (!goal.IsFulfillingReqProgress)
+            {
+                goal.MarkFulfillingProgress();
+
+                Dictionary<UnitType, int> requiredUnits = GetRecommendedUnit(goal.GoalType);
+                goalCoordinator.AddUnitRequest(goal, requiredUnits);
+            }
+        }
+
+        private void InitDefenseGroup(AIGoal goal)
+        {
+            List<MilitaryUnitController> availableUnits = militaryUnitManager.GetAvailableUnits();
+
+            List<MilitaryUnitController> assignedUnits = availableUnits
+                .Take(requiredUnitsForDefense)
+                .ToList();
+
+            MilitaryGroup group = new MilitaryGroup(assignedUnits.Cast<BaseUnitController>().ToList(), playerInfo, goal)
+            {
+                targetPosition = goal.TargetPosition,
+            };
+
+            foreach (var unit in assignedUnits)
+            {
+                unit.activatedGoal = goal;
+                goal.AssignedUnits.Add(unit);
+            }
+
+            // Set defense time
+            goal.targetAmount = requiredDefenseTime;
+
+            activeGroups.Add(goal, group);
+        }
+
+        private void Defense_OnExecuteStarted(AIGoal aiGoal)
+        {
+
+        }
+
+        private void Defense_OnCompleted(AIGoal aiGoal)
+        {
+            aiGoal.UnlinkRelations();
+            activeGroups[aiGoal].OnGroupDisbanded();
+            activeGroups.Remove(aiGoal);
+
+            // Send report log later
         }
 
         private void ReinforceDefenseTick(AIGoal aiGoal)
@@ -380,7 +457,7 @@ namespace RTS.AI.GoalManagement
         {
             Dictionary<UnitType, int> recommendedUnits = new Dictionary<UnitType, int>();
 
-            recommendedUnits.Add(UnitType.Militia, 1);
+            recommendedUnits.Add(UnitType.Militia, 2);
 
             return recommendedUnits;
         }
@@ -389,8 +466,8 @@ namespace RTS.AI.GoalManagement
         {
             Dictionary<UnitType, int> recommendedUnits = new Dictionary<UnitType, int>();
 
-            recommendedUnits.Add(UnitType.Militia, 2);
-            recommendedUnits.Add(UnitType.Archer, 2);
+            recommendedUnits.Add(UnitType.Militia, 4);
+            recommendedUnits.Add(UnitType.Archer, 3);
 
             return recommendedUnits;
         }
@@ -399,8 +476,8 @@ namespace RTS.AI.GoalManagement
         {
             Dictionary<UnitType, int> recommendedUnits = new Dictionary<UnitType, int>();
 
-            recommendedUnits.Add(UnitType.Militia, 2);
-            recommendedUnits.Add(UnitType.Archer, 2);
+            recommendedUnits.Add(UnitType.Militia, 8);
+            recommendedUnits.Add(UnitType.Archer, 6);
 
             return recommendedUnits;
         }
@@ -409,8 +486,8 @@ namespace RTS.AI.GoalManagement
         {
             Dictionary<UnitType, int> recommendedUnits = new Dictionary<UnitType, int>();
 
-            recommendedUnits.Add(UnitType.Militia, 2);
-            recommendedUnits.Add(UnitType.Archer, 2);
+            recommendedUnits.Add(UnitType.Militia, 12);
+            recommendedUnits.Add(UnitType.Archer, 9);
 
             return recommendedUnits;
         }
