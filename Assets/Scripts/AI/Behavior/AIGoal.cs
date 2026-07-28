@@ -81,7 +81,7 @@ namespace RTS.AI.Behavior
 
         public void AddProgress(int progress)
         {
-            Debug.Log($"{currentProgress} / {targetAmount}");
+            Debug.Log($"defense in {currentProgress} second till {targetAmount}");
 
             currentProgress += progress;
             OnProgressChanged?.Invoke(currentProgress, targetAmount);

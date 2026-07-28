@@ -70,9 +70,19 @@ namespace RTS.Data.StrategicData
             List<Vector3> directions = new List<Vector3>();
             var knownEnemyUnits = mapManager.GetKnownEnemyUnits();
 
+            // if not seen the enemy yet, get enemy base direction
+            if (knownEnemyUnits.Count <= 0)
+            {
+                List<PlayerInfo> enemyPlayerInfo = playerInfo.GameManager.GetOpponentPlayerInfo(playerInfo.PlayerNumber);
+                Vector3 enemyBasePosition = enemyPlayerInfo[0].BuildingManager.GetBuilding(BuildingType.TownCenter).transform.position;
+
+                directions.Add(enemyBasePosition);
+                return directions;
+            }
+
             foreach (var enemyUnit in knownEnemyUnits)
             {
-                if (Vector3.Distance(pos, enemyUnit.Key) <= 20f)
+                if (Vector3.Distance(pos, enemyUnit.Key) <= 30f)
                 {
                     directions.Add(enemyUnit.Key);
                 }

@@ -83,17 +83,10 @@ namespace RTS.AI.GoalManagement
 
         private void GoalExecutorTick()
         {
-            goalExecutorTime += Time.deltaTime;
-
-            if (goalExecutorTime >= updateExecutorTime)
-            {
-                goalExecutorTime = 0f;
-
-                productionExecutor.Tick();
-                buildExecutor.Tick();
-                researchExecutor.Tick();
-                militaryExecutor.Tick();
-            }
+            productionExecutor.Tick();
+            buildExecutor.Tick();
+            researchExecutor.Tick();
+            militaryExecutor.Tick();
         }
 
         #endregion

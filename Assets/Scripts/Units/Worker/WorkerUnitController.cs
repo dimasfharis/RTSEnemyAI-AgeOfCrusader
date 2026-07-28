@@ -63,8 +63,6 @@ namespace RTS.Units.Worker
             int gatheredAmount = currentResourceNode.Take(1);
             unitInfo.carryingAmount += gatheredAmount;
 
-            Debug.Log($"total carry: {unitInfo.carryingAmount}");
-
             return gatheredAmount;
         }
 
