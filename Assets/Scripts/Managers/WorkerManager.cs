@@ -8,6 +8,7 @@ using RTS.Buildings.Common;
 using RTS.Units.Common;
 using RTS.Managers.Research;
 using RTS.AI.Resources;
+using RTS.World.WorldManagement;
 
 namespace RTS.Managers
 {
@@ -282,7 +283,7 @@ namespace RTS.Managers
                 return false;
             }
 
-            if (!CanBuildBuilding(buildingType))
+            if (!CanBuildBuilding(buildingType, buildingPosition))
                 return false;
 
             var cost = buildingDatabase.GetBuildingCost(buildingType);
@@ -301,13 +302,15 @@ namespace RTS.Managers
             return false;
         }
 
-        private bool CanBuildBuilding(BuildingType buildingType)
+        private bool CanBuildBuilding(BuildingType buildingType, Vector3 buildingPosition)
         {
-            // it should be tile checking
-            var cost = buildingDatabase.GetBuildingCost(buildingType);
+            // Tile checking
+            WorldManager worldManager = playerInfo.GameManager.WorldManager;
 
-            if (!playerInfo.ResourceManager.CanAfford(cost))
+            if (!worldManager.IsTileImpassible(buildingType, new Vector3Int((int) buildingPosition.x, (int) buildingPosition.y)))
+            {
                 return false;
+            }
 
             return true;
         }

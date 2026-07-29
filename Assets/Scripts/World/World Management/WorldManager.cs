@@ -184,17 +184,17 @@ namespace RTS.World.WorldManagement
                 {
                     if (impassibleTilemap.HasTile(position + new Vector3Int(x, y)))
                     {
-                        Debug.LogWarning($"{buildingType} can't be placed. There is impassible Tile in ({x}, {y})");
+                        Debug.LogWarning($"{buildingType} can't be placed. There is impassible Tile in ({position.x + x}, {position.y + y})");
                         return false;
                     }
                     if (buildingTilemap.HasTile(position + new Vector3Int(x, y)))
                     {
-                        Debug.LogWarning($"{buildingType} can't be placed. There is building Tile in ({x}, {y})");
+                        Debug.LogWarning($"{buildingType} can't be placed. There is building Tile in ({position.x + x}, {position.y + y})");
                         return false;
                     }
                     if (resourceNodeTilemap.HasTile(position + new Vector3Int(x, y)))
                     {
-                        Debug.LogWarning($"{buildingType} can't be placed. There is resource node Tile in ({x}, {y})");
+                        Debug.LogWarning($"{buildingType} can't be placed. There is resource node Tile in ({position.x + x}, {position.y + y})");
                         return false;
                     }
                 }
