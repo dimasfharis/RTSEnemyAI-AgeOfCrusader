@@ -60,10 +60,9 @@ namespace RTS.World.ResourceNodeManagement
         public void NotifyNodeDepleted(ResourceNode node)
         {
             UnregisterNode(node);
+            worldManager.RemoveResourceNodeTile(new Vector3Int((int) node.GetPosition().x, (int) node.GetPosition().y) , node.GetResourceType());
+            
             GameObject.Destroy(node.gameObject);
-
-            // MapManager.MakeTerrainWalkable();
-
         }
 
         #endregion

@@ -46,6 +46,9 @@ namespace RTS.Managers
                 return;
 
             buildings.Remove(building);
+
+            // Remove building tile
+            playerInfo.GameManager.WorldManager.RemoveBuildingTile(building.GetBuildingInfo().buildingType, building.transform.position);
         }
 
         #endregion
@@ -218,40 +221,10 @@ namespace RTS.Managers
             return canAfford;
         }
 
-        public bool TryPlaceBuilding(BuildingType type, Vector3 position)
-        {
-            BuildingInfoSO buildingTemplate = playerInfo.DataManager.buildingDatabase.GetBuildingTemplate(type);
-            GameObject buildingGO = buildingTemplate.buildingPrefab;
-
-            if (!TrySetBuildingTile(position, type))
-            {
-                Debug.LogWarning("Building placement tilemap is not clear");
-                return false;
-            }
-
-            GameObject buildingObj = GameObject.Instantiate(buildingGO, position, Quaternion.identity);
-
-            BaseBuildingController buildingController = buildingObj.GetComponent<BaseBuildingController>();
-
-            if (buildingController == null)
-            {
-                Debug.LogError("Building prefab has no BaseBuildingController");
-                return false;
-            }
-
-            buildingController.Init(playerInfo, buildingTemplate);
-
-            if (researchManager == null)
-                researchManager = playerInfo.ResearchManager;
-            researchManager.UpgradeStats(buildingController);
-
-            return true;
-        }
-
-        private bool TrySetBuildingTile(Vector3 position, BuildingType buildingType)
+        private bool TrySetBuildingTile(BuildingType buildingType, Vector3 position)
         {
             Vector3Int position3Int = new Vector3Int((int)position.x, (int)position.y);
-            if (playerInfo.GameManager.WorldManager.TrySetBuildingTile(position3Int, buildingType))
+            if (playerInfo.GameManager.WorldManager.TrySetBuildingTile(buildingType, position3Int))
                 return true;
 
             return false;
@@ -263,6 +236,9 @@ namespace RTS.Managers
                 return;
 
             instantiatedBuildings.Add(buildingController);
+
+            // Set building tile
+            TrySetBuildingTile(buildingController.GetBuildingInfo().buildingType, buildingController.transform.position);
         }
 
         public void OnBuildingConstructed(BaseBuildingController buildingController)
@@ -291,6 +267,40 @@ namespace RTS.Managers
             }
 
             return null;
+        }
+
+        #endregion
+
+        #region Building Construction (for initial building)
+
+        public bool TryPlaceBuilding(BuildingType type, Vector3 position)
+        {
+            BuildingInfoSO buildingTemplate = playerInfo.DataManager.buildingDatabase.GetBuildingTemplate(type);
+            GameObject buildingGO = buildingTemplate.buildingPrefab;
+
+            if (!TrySetBuildingTile(type, position))
+            {
+                Debug.LogWarning("Building placement tilemap is not clear");
+                return false;
+            }
+
+            GameObject buildingObj = GameObject.Instantiate(buildingGO, position, Quaternion.identity);
+
+            BaseBuildingController buildingController = buildingObj.GetComponent<BaseBuildingController>();
+
+            if (buildingController == null)
+            {
+                Debug.LogError("Building prefab has no BaseBuildingController");
+                return false;
+            }
+
+            buildingController.Init(playerInfo, buildingTemplate);
+
+            if (researchManager == null)
+                researchManager = playerInfo.ResearchManager;
+            researchManager.UpgradeStats(buildingController);
+
+            return true;
         }
 
         #endregion

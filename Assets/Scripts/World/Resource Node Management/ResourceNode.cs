@@ -55,15 +55,13 @@ namespace RTS.World.ResourceNodeManagement
 
         public int Take(int amount)
         {
-            if (IsDepleted())
-                return 0;
-
             int harvestedAmount = Mathf.Min(amount, currentAmount);
             currentAmount -= harvestedAmount;
 
             if (IsDepleted())
             {
                 resourceNodeManager.NotifyNodeDepleted(this);
+                return 0;
             }
 
             return harvestedAmount;

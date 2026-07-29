@@ -33,11 +33,10 @@ namespace RTS.AI.GoalManagement
         private int requiredUnitsForScout = 2;
         private int requiredTilesForScout = 300;
         private int requiredUnitsForDefense = 6;
-        private int requiredDefenseTime = 4;
+        private int requiredDefenseTime = 45;
 
         // Timer
         private float defenseGoalTimer;
-        private float defense1s = 1f;
 
         #region Initialization
 
@@ -336,10 +335,9 @@ namespace RTS.AI.GoalManagement
             {
                 defenseGoalTimer += Time.deltaTime;
 
-                if (defenseGoalTimer > defense1s)
+                if (defenseGoalTimer >= goal.targetAmount)
                 {
-                    defense1s += 1f;
-                    goal.AddProgress(1);
+                    goal.AddProgress(goal.targetAmount);
                 }
             }
         }

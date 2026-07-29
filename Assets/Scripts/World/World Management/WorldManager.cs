@@ -85,16 +85,17 @@ namespace RTS.World.WorldManagement
 
         #endregion
 
-        #region Queries
+        #region Building, Resource Node, Impassible Tile Management
 
-        public bool TrySetBuildingTile(Vector3Int position, BuildingType buildingType)
+        public bool TrySetBuildingTile(BuildingType buildingType, Vector3Int position)
         {
-            if (!IsTileImpassible(position, buildingType))
+            if (!IsTileImpassible(buildingType, position))
             {
                 Debug.LogWarning($"{buildingType} can not placed in impassible tile");
                 return false;
             }
 
+            // Get building's dimension
             BuildingDatabase buildingDatabase = gameManager.GetDataManager().buildingDatabase;
             int buildingLength = buildingDatabase.GetBuildingTemplate(buildingType).length;
             int buildingWidth = buildingDatabase.GetBuildingTemplate(buildingType).width;
@@ -133,11 +134,42 @@ namespace RTS.World.WorldManagement
                 }
             }
 
-            
             return true;
         }
 
-        public bool IsTileImpassible(Vector3Int position, BuildingType buildingType)
+        public void RemoveBuildingTile(BuildingType buildingType, Vector3 position)
+        {
+            // Get building's dimension
+            BuildingDatabase buildingDatabase = gameManager.GetDataManager().buildingDatabase;
+            int buildingLength = buildingDatabase.GetBuildingTemplate(buildingType).length;
+            int buildingWidth = buildingDatabase.GetBuildingTemplate(buildingType).width;
+
+            Tilemap buildingTilemap = tileDatabase.GetBuildingTilemap();
+            for (int x = 0; x < buildingLength; x++)
+            {
+                for (int y = 0; y < buildingWidth; y++)
+                {
+                    buildingTilemap.SetTile(new Vector3Int((int) position.x + x, (int) position.y + y), null);
+                }
+            }
+        }
+
+        public void RemoveResourceNodeTile(Vector3Int position, ResourceType resourceType)
+        {
+            int resourceNodeLength = resourceNodeDatabase.GetResourceNodeTemplate(resourceType).length;
+            int resourceNodeWidth = resourceNodeDatabase.GetResourceNodeTemplate(resourceType).width;
+
+            Tilemap resourceNodeTilemap = tileDatabase.GetResourceNodeTilemap();
+            for (int x = 0; x < resourceNodeLength; x++)
+            {
+                for (int y = 0; y < resourceNodeWidth; y++)
+                {
+                    resourceNodeTilemap.SetTile(position + new Vector3Int(x, y), null);
+                }
+            }
+        }
+
+        public bool IsTileImpassible(BuildingType buildingType, Vector3Int position)
         {
             BuildingDatabase buildingDatabase = gameManager.GetDataManager().buildingDatabase;
             int buildingLength = buildingDatabase.GetBuildingTemplate(buildingType).length;
@@ -152,17 +184,17 @@ namespace RTS.World.WorldManagement
                 {
                     if (impassibleTilemap.HasTile(position + new Vector3Int(x, y)))
                     {
-                        Debug.LogWarning($"There is impassible Tile in ({x}, {y})");
+                        Debug.LogWarning($"{buildingType} can't be placed. There is impassible Tile in ({x}, {y})");
                         return false;
                     }
                     if (buildingTilemap.HasTile(position + new Vector3Int(x, y)))
                     {
-                        Debug.LogWarning($"There is building Tile in ({x}, {y})");
+                        Debug.LogWarning($"{buildingType} can't be placed. There is building Tile in ({x}, {y})");
                         return false;
                     }
                     if (resourceNodeTilemap.HasTile(position + new Vector3Int(x, y)))
                     {
-                        Debug.LogWarning($"There is resource node Tile in ({x}, {y})");
+                        Debug.LogWarning($"{buildingType} can't be placed. There is resource node Tile in ({x}, {y})");
                         return false;
                     }
                 }

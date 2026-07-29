@@ -29,6 +29,25 @@ namespace RTS.Core
 
         #region Unit Testing (developer purpose only)
 
+        #region Give Damage to Building
+
+        [SerializeField] private DamageBuilding damageBuilding;
+
+        [System.Serializable]
+        public struct DamageBuilding
+        {
+            public BaseBuildingController buildingToDamaged;
+            public int damageAmount;
+        }
+
+        [ContextMenu("DamageBuilding")]
+        public void TestDamageBuilding()
+        {
+            damageBuilding.buildingToDamaged.ReceiveDamage(damageBuilding.damageAmount);
+        }
+
+        #endregion
+
         #region Do Reinforce Defense
 
         [SerializeField] private DoDefense doDefense;

@@ -303,6 +303,7 @@ namespace RTS.Managers
 
         private bool CanBuildBuilding(BuildingType buildingType)
         {
+            // it should be tile checking
             var cost = buildingDatabase.GetBuildingCost(buildingType);
 
             if (!playerInfo.ResourceManager.CanAfford(cost))
