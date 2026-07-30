@@ -307,7 +307,7 @@ namespace RTS.Managers
             // Tile checking
             WorldManager worldManager = playerInfo.GameManager.WorldManager;
 
-            if (!worldManager.IsTileImpassible(buildingType, new Vector3Int((int) buildingPosition.x, (int) buildingPosition.y)))
+            if (worldManager.IsTileImpassible(buildingType, new Vector3Int((int) buildingPosition.x, (int) buildingPosition.y)))
             {
                 return false;
             }

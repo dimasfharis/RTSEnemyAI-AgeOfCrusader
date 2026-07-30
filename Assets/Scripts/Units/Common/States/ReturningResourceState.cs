@@ -15,7 +15,7 @@ namespace RTS.Units.Common.States
             if (unit is not WorkerUnitController workerUnit)
                 return;
 
-            Debug.Log("masuk returning resource state");
+            //Debug.Log("masuk returning resource state");
 
             worker = unit as WorkerUnitController;
 

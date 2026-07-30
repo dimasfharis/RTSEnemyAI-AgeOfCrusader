@@ -1,10 +1,11 @@
+using RTS.AI.Behavior;
+using RTS.Buildings.Data;
 using RTS.Common.Enums;
 using RTS.Core;
+using RTS.Managers.Map;
 using RTS.Units.Data;
-using RTS.Buildings.Data;
 using System.Collections.Generic;
 using UnityEngine;
-using RTS.Managers.Map;
 
 
 namespace RTS.Data.StrategicData
@@ -53,7 +54,8 @@ namespace RTS.Data.StrategicData
         public Vector3 GetBaseDefensePoint()
         {
             Vector3 townhallPosition = playerInfo.BuildingManager.GetBuilding(BuildingType.TownCenter).transform.position;
-            List<Vector3> directions = GetEnemyAttackDirection(townhallPosition);
+            float radius = playerInfo.DataManager.buildingDatabase.GetBuildingTemplate(BuildingType.TownCenter).lineOfSightRange * 4;
+            List<Vector3> directions = GetEnemyAttackDirectionWithinRadius(townhallPosition, radius);
 
             Vector3 calculatedDirection = Vector3.zero;
 
@@ -65,26 +67,34 @@ namespace RTS.Data.StrategicData
             return calculatedDirection /= directions.Count;
         }
 
-        public List<Vector3> GetEnemyAttackDirection(Vector3 pos)
+        public List<Vector3> GetEnemyAttackDirectionWithinRadius(Vector3 towardPosition, float radius)
         {
             List<Vector3> directions = new List<Vector3>();
             var knownEnemyUnits = mapManager.GetKnownEnemyUnits();
 
             // if not seen the enemy yet, get enemy base direction
-            if (knownEnemyUnits.Count <= 0)
+            if (knownEnemyUnits == null || knownEnemyUnits.Count <= 0)
             {
                 List<PlayerInfo> enemyPlayerInfo = playerInfo.GameManager.GetOpponentPlayerInfo(playerInfo.PlayerNumber);
-                Vector3 enemyBasePosition = enemyPlayerInfo[0].BuildingManager.GetBuilding(BuildingType.TownCenter).transform.position;
 
-                directions.Add(enemyBasePosition);
+                if (enemyPlayerInfo != null && enemyPlayerInfo.Count > 0)
+                {
+                    Vector3 enemyBasePosition = enemyPlayerInfo[0].BuildingManager.GetBuilding(BuildingType.TownCenter).transform.position;
+                    Vector3 dirToBase = (enemyBasePosition - towardPosition).normalized;
+                    directions.Add(dirToBase);
+                }
+                
                 return directions;
             }
 
+            // Take directions towards towardPosition for each enemy unit in radius
             foreach (var enemyUnit in knownEnemyUnits)
             {
-                if (Vector3.Distance(pos, enemyUnit.Key) <= 30f)
+                float distance = Vector3.Distance(towardPosition, enemyUnit.Key);
+                if (distance <= radius && distance > 0.01f)
                 {
-                    directions.Add(enemyUnit.Key);
+                    Vector3 dirToEnemy = (enemyUnit.Key - towardPosition).normalized;
+                    directions.Add(dirToEnemy);
                 }
             }
 

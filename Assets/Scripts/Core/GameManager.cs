@@ -29,6 +29,31 @@ namespace RTS.Core
 
         #region Unit Testing (developer purpose only)
 
+        #region Do Build Goal
+
+        [SerializeField] private DoBuild doBuild;
+
+        [System.Serializable]
+        public struct DoBuild
+        {
+            public int playerNumber;
+            public BuildingType buildingType;
+        }
+
+        [ContextMenu("Do Build")]
+        public void TestDoBuild()
+        {
+            PlayerInfo playerInfo = Players[doBuild.playerNumber];
+            BuildGoalExecutor buildGoalExecutor = playerInfo.AIManager.GetEnemyBehaviorAIManager().GetGoalCoordinator().GetBuildGoalExecutor();
+
+            AIGoal goal = new AIGoal(playerInfo, AIGoalType.BuildStructure, 0f);
+            goal.SetBuilding(doBuild.buildingType);
+
+            buildGoalExecutor.Execute(goal);
+        }
+
+        #endregion
+
         #region Give Damage to Building
 
         [SerializeField] private DamageBuilding damageBuilding;

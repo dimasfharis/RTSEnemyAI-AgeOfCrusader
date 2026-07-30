@@ -11,7 +11,7 @@ namespace RTS.Units.Common.States
                 return;
 
             worker.DepositResource();
-            Debug.Log("Terdeposit");
+            //Debug.Log("Terdeposit");
 
             worker.SetWorkerToGather(worker.GetCurrentResourceNode().GetResourceType());
         }

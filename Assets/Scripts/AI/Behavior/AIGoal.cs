@@ -102,6 +102,7 @@ namespace RTS.AI.Behavior
         {
             IsFulfillingReqProgress = false;
             IsExecuteStarted = false;
+            IsActive = false;
             IsCompleted = true;
 
             OnProgressChanged -= AIGoal_OnProgressChanged;
@@ -176,11 +177,6 @@ namespace RTS.AI.Behavior
         public void SetUnitTrainingRequirements(Dictionary<UnitType, int> requirements)
         {
             UnitTrainingRequirements = requirements;
-        }
-
-        public void AssignUnits(List<BaseUnitController> units)
-        {
-            AssignedUnits = units;
         }
 
         public void MarkActive()

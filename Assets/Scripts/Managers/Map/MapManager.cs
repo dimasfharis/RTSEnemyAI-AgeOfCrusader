@@ -15,6 +15,8 @@ namespace RTS.Managers.Map
         // References
         public PlayerInfo playerInfo;
         public TileDatabase tileDatabase;
+        private WorldManager worldManager;
+        private BuildingManager buildingManager;
 
         // Memory
         private Dictionary<Vector3, ResourceNodeMemory> knownResourceNodes;
@@ -31,6 +33,8 @@ namespace RTS.Managers.Map
         {
             this.playerInfo = owner;
             tileDatabase = playerInfo.GameManager.WorldManager.tileDatabase;
+            worldManager = playerInfo.GameManager.WorldManager;
+            buildingManager = playerInfo.BuildingManager;
 
             knownResourceNodes = new Dictionary<Vector3, ResourceNodeMemory>();
             knownEnemyBuildings = new Dictionary<Vector3, EnemyBuildingMemory>();
@@ -252,16 +256,91 @@ namespace RTS.Managers.Map
 
         #endregion
 
-        #region Building Placement
+        #region Map Public API
 
-        public Vector3 FindBuildablePositionNear(Vector3 baseRef, float buildRadius)
+        public Vector3 FindBuildablePositionNear(BuildingType buildingType, Vector3 baseRef, float scanRadius, Vector3 trendDirection = default)
         {
-            return Vector3.zero; // placeholder
+            // if trend direction is zero, then make it random
+            if (trendDirection == Vector3.zero)
+            {
+                float randomAngle = Random.Range(0f, 360f) * Mathf.Deg2Rad;
+                trendDirection = new Vector3(Mathf.Cos(randomAngle), Mathf.Sin(randomAngle), 0f);
+            }
+            trendDirection.Normalize();
+
+            List<(Vector3 position, float score)> candidates = new List<(Vector3, float)>();
+
+            int minX = Mathf.FloorToInt(baseRef.x - scanRadius);
+            int maxX = Mathf.CeilToInt(baseRef.x + scanRadius);
+            int minY = Mathf.FloorToInt(baseRef.y - scanRadius);
+            int maxY = Mathf.CeilToInt(baseRef.y + scanRadius);
+
+            // radius scan, begin scan from center/baseRef, then moving to outer radius. trend direction is prioritized when it determined
+            for (int x = minX; x <= maxX; x++)
+            {
+                for (int y = minY; y <= maxY; y++)
+                {
+                    Vector3 candidatePos = new Vector3(x, y, 0f);
+                    float distance = Vector3.Distance(baseRef, candidatePos);
+
+                    // Tile must be in radius
+                    if (distance > scanRadius)
+                        continue;
+
+                    Vector3Int tileCoord = new Vector3Int(x, y, 0);
+
+                    // Tile must can be built
+                    if (!worldManager.IsTileImpassible(buildingType, tileCoord))
+                    {
+                        Vector3 dirFromBase = (candidatePos - baseRef).normalized;
+
+                        // Alignment: score 1.0 if perfectly aligned with trendDirection, -1.0 if opposite
+                        float alignment = Vector3.Dot(dirFromBase, trendDirection);
+
+                        // Add randomness
+                        float randomNoise = Random.Range(-0.25f, 0.25f);
+                        float finalScore = alignment + randomNoise;
+
+                        candidates.Add((candidatePos, finalScore));
+                    }
+                }
+            }
+
+            if (candidates.Count == 0)
+                return Vector3.zero;
+
+            // Sort from highest score
+            candidates.Sort((a, b) => b.score.CompareTo(a.score));
+
+            // Pick randomly on top 3 position
+            int selectIndex = Random.Range(0, Mathf.Min(3, candidates.Count));
+            return candidates[selectIndex].position;
         }
 
-        #endregion
+        public BaseBuildingController GetOuterBuildingInDirection(Vector3 baseRef, Vector3 direction)
+        {
+            List<BaseBuildingController> allBuildings = buildingManager.GetAllBuildings();
+            BaseBuildingController baseRefBuilding = buildingManager.GetBuildingByTilePos(baseRef);
 
-        #region Public API
+            BaseBuildingController outerBuilding = null;
+            float outerDistance = float.MinValue;
+            float sensitivityAngle = 75f;
+
+            foreach (BaseBuildingController building in allBuildings)
+            {
+                if (building == baseRefBuilding) continue;
+
+                float angle = Vector3.Angle(direction, building.transform.position);
+                float distance = Vector3.Distance(baseRef, building.transform.position);
+                if (angle < sensitivityAngle && distance > outerDistance)
+                {
+                    outerBuilding = building;
+                    outerDistance = distance;
+                }
+            }
+
+            return outerBuilding;
+        }
 
         public Vector3 GetFrontierPosition()
         {

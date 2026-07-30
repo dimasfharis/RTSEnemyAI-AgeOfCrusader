@@ -89,7 +89,7 @@ namespace RTS.World.WorldManagement
 
         public bool TrySetBuildingTile(BuildingType buildingType, Vector3Int position)
         {
-            if (!IsTileImpassible(buildingType, position))
+            if (IsTileImpassible(buildingType, position))
             {
                 Debug.LogWarning($"{buildingType} can not placed in impassible tile");
                 return false;
@@ -115,7 +115,7 @@ namespace RTS.World.WorldManagement
 
         public bool TrySetResourceNodeTile(Vector3Int position, ResourceType resourceType)
         {
-            if (!IsTileImpassible(position, resourceType))
+            if (IsTileImpassible(position, resourceType))
             {
                 Debug.LogWarning($"{resourceType} can not placed in impassible tile");
                 return false;
@@ -185,22 +185,22 @@ namespace RTS.World.WorldManagement
                     if (impassibleTilemap.HasTile(position + new Vector3Int(x, y)))
                     {
                         Debug.LogWarning($"{buildingType} can't be placed. There is impassible Tile in ({position.x + x}, {position.y + y})");
-                        return false;
+                        return true;
                     }
                     if (buildingTilemap.HasTile(position + new Vector3Int(x, y)))
                     {
                         Debug.LogWarning($"{buildingType} can't be placed. There is building Tile in ({position.x + x}, {position.y + y})");
-                        return false;
+                        return true;
                     }
                     if (resourceNodeTilemap.HasTile(position + new Vector3Int(x, y)))
                     {
                         Debug.LogWarning($"{buildingType} can't be placed. There is resource node Tile in ({position.x + x}, {position.y + y})");
-                        return false;
+                        return true;
                     }
                 }
             }
 
-            return true;
+            return false;
         }
 
         public bool IsTileImpassible(Vector3Int position, ResourceType resourceType)
@@ -218,22 +218,22 @@ namespace RTS.World.WorldManagement
                     if (impassibleTilemap.HasTile(position + new Vector3Int(x, y)))
                     {
                         Debug.LogWarning($"There is impassible Tile in ({position.x + x}, {position.y + y})");
-                        return false;
+                        return true;
                     }
                     if (buildingTilemap.HasTile(position + new Vector3Int(x, y)))
                     {
                         Debug.LogWarning($"There is building Tile in ({position.x + x}, {position.y + y})");
-                        return false;
+                        return true;
                     }
                     if (resourceNodeTilemap.HasTile(position + new Vector3Int(x, y)))
                     {
                         Debug.LogWarning($"There is resource node Tile in ({position.x + x}, {position.y + y})");
-                        return false;
+                        return true;
                     }
                 }
             }
 
-            return true;
+            return false;
         }
 
         #endregion

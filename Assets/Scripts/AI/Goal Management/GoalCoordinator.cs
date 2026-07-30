@@ -191,7 +191,7 @@ namespace RTS.AI.GoalManagement
                     break;
 
                 case AIGoalType.BuildStructure:
-                    buildExecutor.Execute(goal);
+                    //buildExecutor.Execute(goal);
                     break;
 
                 case AIGoalType.ResearchUpgrade:
@@ -236,6 +236,16 @@ namespace RTS.AI.GoalManagement
         #endregion
 
         #region Getter
+
+        public ProductionGoalExecutor GetProductionGoalExecutor()
+        {
+            return productionExecutor;
+        }
+
+        public BuildGoalExecutor GetBuildGoalExecutor()
+        {
+            return buildExecutor;
+        }
 
         public MilitaryGoalExecutor GetMilitaryGoalExecutor()
         {

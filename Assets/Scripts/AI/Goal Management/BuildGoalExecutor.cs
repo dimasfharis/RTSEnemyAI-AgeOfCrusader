@@ -5,6 +5,7 @@ using RTS.Managers;
 using RTS.Managers.Map;
 using RTS.Units.Worker;
 using RTS.World.ResourceNodeManagement;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace RTS.AI.GoalManagement
@@ -45,7 +46,7 @@ namespace RTS.AI.GoalManagement
 
         public void Tick()
         {
-
+            // Check for building not yet built
         }
 
         #endregion
@@ -54,108 +55,125 @@ namespace RTS.AI.GoalManagement
 
         public void Execute(AIGoal goal)
         {
-            currentTime += Time.deltaTime;
+            if (goal.IsCompleted || goal.GoalType != AIGoalType.BuildStructure)
+                return;
 
-            if (currentTime >= executionTime)
+            switch (goal.BuildingType)
             {
-                currentTime = 0f;
+                case BuildingType.House:
+                    ExecuteHouseBuilding(goal);
+                    break;
 
-                //Debug.Log("executing build goal...");
+                case BuildingType.Barracks:
+                case BuildingType.SiegeWorkshop:
+                    ExecuteMilitaryBuilding(goal);
+                    break;
+
+                case BuildingType.CannonTower:
+                case BuildingType.GuardTower:
+                    ExecuteDefensiveBuilding(goal);
+                    break;
             }
 
-            /*if (goal.GoalType != AIGoalType.BuildStructure)
-                return;
-
-            if (goal.IsCompleted)
-                return;
-
-            TryExecuteBuild(goal);*/
+            //TryExecuteBuild(goal);
         }
 
-        private bool TryExecuteBuild(AIGoal goal)
+        private bool TryExecuteBuild(AIGoal goal, Vector3 buildingPosition)
         {
-            // Get Building Type to be build
-            BuildingType buildingType = goal.BuildingType;
-
-            // Has Enough Resource Checking
-            if (!buildingManager.CanAfford(buildingType))
+            // Get Build Position
+            if (buildingPosition == Vector3.zero)
                 return false;
 
             // Get Worker Available
-            WorkerUnitController worker = workerManager.GetIdleWorkers()[0];
-            if (worker == null)
+            var idleWorkers = workerManager.GetIdleWorkers();
+            if (idleWorkers == null || idleWorkers.Count == 0)
                 return false;
 
-            // Get Build Position
-            Vector3 buildPosition = FindBuildPosition(buildingType);
-            if (buildPosition == Vector3.zero)
-                return false;
+            WorkerUnitController worker = idleWorkers[0];
 
-            // Building Placement
-            // without worker
-            bool success = buildingManager.TryPlaceBuilding(
-                buildingType,
-                buildPosition);
+            // Assign Worker to Build
+            bool success = workerManager.TryAssignWorkerToBuild(
+                new List<WorkerUnitController> { worker },
+                goal.BuildingType,
+                buildingPosition);
 
             if (success)
             {
                 goal.AddProgress(1);
-
-                if (goal.currentProgress >= goal.targetAmount)
-                {
-                    goal.MarkCompleted();
-                }
+                return true;
             }
 
-            return success;
+            return false;
         }
 
         #endregion
 
         #region Building Placement
 
-        private Vector3 FindBuildPosition(BuildingType buildingType)
-        {
-            BuildingCategory category = buildingManager.GetBuildingCategory(buildingType);
+            #region House Building
 
-            switch (category)
+            private void ExecuteHouseBuilding(AIGoal aiGoal)
             {
-                case BuildingCategory.Economic:
-                    return FindEconomyPlacement(buildingType);
+                Vector3 baseRef = buildingManager.GetBuilding(BuildingType.TownCenter).transform.position;
+                float scanRadius = playerInfo.DataManager.buildingDatabase.GetBuildingTemplate(aiGoal.BuildingType).lineOfSightRange * 3;
 
-                case BuildingCategory.Military:
-                    return FindMilitaryPlacement();
+                List<Vector3> enemyDirections = playerInfo.DataManager.GetPlayerStrategicData().GetEnemyAttackDirectionWithinRadius(baseRef, scanRadius);
 
-                case BuildingCategory.Defensive:
-                    return FindDefensePlacement();
+                Vector3 safeDirection = Vector3.zero;
+
+                if (enemyDirections != null && enemyDirections.Count > 0)
+                {
+                    Vector3 avgEnemyDir = Vector3.zero;
+                    foreach (Vector3 direction in enemyDirections)
+                    {
+                        avgEnemyDir += direction;
+                    }
+                    avgEnemyDir.Normalize();
+
+                    safeDirection = -avgEnemyDir;
+                }
+                
+                Vector3 buildPosition = mapManager.FindBuildablePositionNear(aiGoal.BuildingType, baseRef, scanRadius, safeDirection);
+
+                TryExecuteBuild(aiGoal, buildPosition);
             }
 
-            return Vector3.zero;
-        }
+            #endregion
 
-        private Vector3 FindEconomyPlacement(BuildingType buildingType)
-        {
-            ResourceType resourceType = playerInfo.DataManager.buildingDatabase.GetBuildingAcceptedResources(buildingType)[0];
-            ResourceNode node = resourceNodeManager.GetNearestResourceNode(resourceType, basePosition);
+            #region Military Building
 
-            if (node == null)
-                return Vector3.zero;
+            private void ExecuteMilitaryBuilding(AIGoal aiGoal)
+            {
+                
+            }
 
-            Vector3 nearestNode = node.GetPosition();
+            #endregion
 
-            return mapManager.FindBuildablePositionNear(nearestNode, 8f);
-        }
+            #region Defensive Building
+
+            private void ExecuteDefensiveBuilding(AIGoal aiGoal)
+            {
+                
+            }
+
+            #endregion
+
+        #endregion
+
+        #region Building Placement Helper
 
         private Vector3 FindMilitaryPlacement()
         {
-            return mapManager.FindBuildablePositionNear(basePosition, BASE_BUILD_RADIUS);
+            //return mapManager.FindBuildablePositionNear(basePosition, BASE_BUILD_RADIUS);
+            return Vector3.zero;
         }
 
         private Vector3 FindDefensePlacement()
         {
             Vector3 frontier = mapManager.GetFrontierPosition();
 
-            return mapManager.FindBuildablePositionNear(frontier, 6f);
+            //return mapManager.FindBuildablePositionNear(frontier, 6f);
+            return Vector3.zero;
         }
 
         #endregion
