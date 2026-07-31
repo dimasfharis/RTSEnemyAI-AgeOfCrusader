@@ -297,9 +297,12 @@ namespace RTS.Managers.Map
                         // Alignment: score 1.0 if perfectly aligned with trendDirection, -1.0 if opposite
                         float alignment = Vector3.Dot(dirFromBase, trendDirection);
 
+                        // Close to Base: score 1.0 (closest to the base), 0.0 (farthest from the base)
+                        float proximity = 1.0f - (distance / scanRadius);
+
                         // Add randomness
-                        float randomNoise = Random.Range(-0.25f, 0.25f);
-                        float finalScore = alignment + randomNoise;
+                        float randomNoise = Random.Range(-0.2f, 0.2f);
+                        float finalScore = alignment + proximity + randomNoise;
 
                         candidates.Add((candidatePos, finalScore));
                     }
@@ -340,11 +343,6 @@ namespace RTS.Managers.Map
             }
 
             return outerBuilding;
-        }
-
-        public Vector3 GetFrontierPosition()
-        {
-            return Vector3.zero; // placeholder
         }
 
         public Dictionary<Vector2Int, float> GetExploredTiles()

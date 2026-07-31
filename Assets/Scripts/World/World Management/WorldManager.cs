@@ -178,6 +178,7 @@ namespace RTS.World.WorldManagement
             Tilemap impassibleTilemap = tileDatabase.GetImpassibleTilemap();
             Tilemap buildingTilemap = tileDatabase.GetBuildingTilemap();
             Tilemap resourceNodeTilemap = tileDatabase.GetResourceNodeTilemap();
+            Tilemap groundTilemap = tileDatabase.GetGroundTilemap();
             for (int x = 0; x < buildingLength; x++)
             {
                 for (int y = 0; y < buildingWidth; y++)
@@ -195,6 +196,11 @@ namespace RTS.World.WorldManagement
                     if (resourceNodeTilemap.HasTile(position + new Vector3Int(x, y)))
                     {
                         Debug.LogWarning($"{buildingType} can't be placed. There is resource node Tile in ({position.x + x}, {position.y + y})");
+                        return true;
+                    }
+                    if (!groundTilemap.HasTile(position + new Vector3Int(x, y)))
+                    {
+                        Debug.LogWarning($"{buildingType} can't be placed. There is not available Tile in ({position.x + x}, {position.y + y})");
                         return true;
                     }
                 }

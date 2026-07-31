@@ -1,4 +1,5 @@
 using RTS.AI.Behavior;
+using RTS.Buildings.Common;
 using RTS.Common.Enums;
 using RTS.Core;
 using RTS.Managers;
@@ -74,8 +75,6 @@ namespace RTS.AI.GoalManagement
                     ExecuteDefensiveBuilding(goal);
                     break;
             }
-
-            //TryExecuteBuild(goal);
         }
 
         private bool TryExecuteBuild(AIGoal goal, Vector3 buildingPosition)
@@ -144,7 +143,12 @@ namespace RTS.AI.GoalManagement
 
             private void ExecuteMilitaryBuilding(AIGoal aiGoal)
             {
-                
+                Vector3 baseRef = buildingManager.GetBuilding(BuildingType.TownCenter).transform.position;
+                float scanRadius = playerInfo.DataManager.buildingDatabase.GetBuildingTemplate(aiGoal.BuildingType).lineOfSightRange * 3;
+
+                Vector3 buildPosition = mapManager.FindBuildablePositionNear(aiGoal.BuildingType, baseRef, scanRadius);
+
+                TryExecuteBuild(aiGoal, buildPosition);
             }
 
             #endregion
@@ -153,28 +157,32 @@ namespace RTS.AI.GoalManagement
 
             private void ExecuteDefensiveBuilding(AIGoal aiGoal)
             {
-                
+                Vector3 baseRef = buildingManager.GetBuilding(BuildingType.TownCenter).transform.position;
+                float scanRadius = playerInfo.DataManager.buildingDatabase.GetBuildingTemplate(aiGoal.BuildingType).lineOfSightRange * 3;
+
+                List<Vector3> enemyDirections = playerInfo.DataManager.GetPlayerStrategicData().GetEnemyAttackDirectionWithinRadius(baseRef, scanRadius);
+
+                Vector3 defenseDirection = Vector3.zero;
+
+                if (enemyDirections != null && enemyDirections.Count > 0)
+                {
+                    Vector3 avgEnemyDir = Vector3.zero;
+                    foreach (Vector3 direction in enemyDirections)
+                    {
+                        avgEnemyDir += direction;
+                    }
+                    avgEnemyDir.Normalize();
+                    defenseDirection = avgEnemyDir;
+                }
+
+                BaseBuildingController outerBuildingInDirection = mapManager.GetOuterBuildingInDirection(baseRef, defenseDirection);
+
+                Vector3 buildPosition = mapManager.FindBuildablePositionNear(aiGoal.BuildingType, outerBuildingInDirection.transform.position, scanRadius, defenseDirection);
+
+                TryExecuteBuild(aiGoal, buildPosition);
             }
 
             #endregion
-
-        #endregion
-
-        #region Building Placement Helper
-
-        private Vector3 FindMilitaryPlacement()
-        {
-            //return mapManager.FindBuildablePositionNear(basePosition, BASE_BUILD_RADIUS);
-            return Vector3.zero;
-        }
-
-        private Vector3 FindDefensePlacement()
-        {
-            Vector3 frontier = mapManager.GetFrontierPosition();
-
-            //return mapManager.FindBuildablePositionNear(frontier, 6f);
-            return Vector3.zero;
-        }
 
         #endregion
     }
