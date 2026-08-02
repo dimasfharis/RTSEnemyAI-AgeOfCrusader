@@ -38,6 +38,50 @@ namespace RTS.World.WorldManagement
 
         #region Opponent Interaction
 
+        public List<BaseUnitController> GetAllOpponentUnits(PlayerInfo playerInfo)
+        {
+            List<BaseUnitController> opponentUnits = new List<BaseUnitController>();
+
+            List<PlayerInfo> opponentsPlayerInfo = gameManager.GetOpponentPlayerInfo(playerInfo.PlayerNumber);
+
+            foreach (var player in opponentsPlayerInfo)
+            {
+                var units = player.MilitaryUnitManager.GetAllUnits();
+                var workers = player.WorkerManager.GetAllUnits();
+
+                if (units.Count > 0)
+                {
+                    opponentUnits.AddRange(units);
+                }
+
+                if (workers.Count > 0)
+                {
+                    opponentUnits.AddRange(workers);
+                }
+            }
+
+            return opponentUnits;
+        }
+
+        public List<BaseBuildingController> GetAllOpponentBuildings(PlayerInfo playerInfo)
+        {
+            List<BaseBuildingController> opponentBuildings = new List<BaseBuildingController>();
+
+            List<PlayerInfo> opponentPlayerInfo = gameManager.GetOpponentPlayerInfo(playerInfo.PlayerNumber);
+
+            foreach (var player in opponentPlayerInfo)
+            {
+                var buildings = player.BuildingManager.GetAllBuildings();
+
+                if (buildings.Count > 0)
+                {
+                    opponentBuildings.AddRange(buildings);
+                }
+            }
+
+            return opponentBuildings;
+        }
+
         public List<BaseUnitController> GetOpponentUnitsInRadius(PlayerInfo playerInfo, Vector3 fromPosition, float radius)
         {
             List<BaseUnitController> unitsInRadius = new List<BaseUnitController>();
@@ -47,13 +91,12 @@ namespace RTS.World.WorldManagement
             foreach (var player in opponentsPlayerInfo)
             {
                 var unitsInArea = player.MilitaryUnitManager.GetUnitsInRadius(fromPosition, radius);
+                var workersInArea = player.WorkerManager.GetWorkersInRadius(fromPosition, radius);
 
                 if (unitsInArea.Count > 0)
                 {
                     unitsInRadius.AddRange(unitsInArea);
                 }
-
-                var workersInArea = player.WorkerManager.GetWorkersInRadius(fromPosition, radius);
 
                 if (workersInArea.Count > 0)
                 {

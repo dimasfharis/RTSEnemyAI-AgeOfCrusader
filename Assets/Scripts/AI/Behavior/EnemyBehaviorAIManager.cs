@@ -16,9 +16,13 @@ namespace RTS.AI.Behavior
         private AIProfileSO aiProfile;
         private DataManager dataManager;
 
+        private GoalCoordinator goalCoordinator;
+
         private List<AIGoal> currentGoals = new List<AIGoal>();
 
-        private GoalCoordinator goalCoordinator;
+        // Ideal Value
+        private float idealGoalScoutExecuteInterval = 30f;
+        private float idealResourceNeedsPerResourceNode = 15f;
 
         #region Initialization
 
@@ -186,7 +190,8 @@ namespace RTS.AI.Behavior
         private void EvaluateMilitaryGoals()
         {
             float attackOpportunity = CalculateAttackOpportunity();
-            float patrolNeed = CalculatePatrolNeed();
+            float resourceScoutNeed = CalculateResourceScoutNeed();
+            float enemyScoutNeed = CalculateEnemyScoutNeed();
             float harassmentNeed = CalculateHarassmentNeed();
 
             float attackScore =
@@ -194,10 +199,15 @@ namespace RTS.AI.Behavior
                 aiProfile.AttackMultiplier *
                 GetStrategyMultiplier(AIGoalType.LaunchAttackWave);
 
-            float patrolScore =
-                patrolNeed *
-                aiProfile.PatrolMultiplier *
-                GetStrategyMultiplier(AIGoalType.AssignScout);
+            float resourceScoutScore =
+                resourceScoutNeed *
+                aiProfile.ScoutMultiplier *
+                GetStrategyMultiplier(AIGoalType.AssignScout, 0);
+
+            float enemyScoutScore =
+                enemyScoutNeed
+                * aiProfile.ScoutMultiplier
+                * GetStrategyMultiplier(AIGoalType.AssignScout, 1);
 
             float harassmentScore =
                 harassmentNeed *
@@ -207,11 +217,18 @@ namespace RTS.AI.Behavior
             currentGoals.Add(
                 new AIGoal(playerInfo, AIGoalType.LaunchAttackWave, attackScore));
 
-            currentGoals.Add(
-                new AIGoal(playerInfo, AIGoalType.AssignScout, patrolScore));
+            AIGoal aiGoalResourceScout = new AIGoal(playerInfo, AIGoalType.AssignScout, resourceScoutScore);
+            AIGoal aiGoalEnemyScout = new AIGoal(playerInfo, AIGoalType.AssignScout, enemyScoutScore);
+
+            currentGoals.Add(aiGoalResourceScout);
+            currentGoals.Add(aiGoalEnemyScout);
 
             currentGoals.Add(
                 new AIGoal(playerInfo, AIGoalType.AssignHarassment, harassmentScore));
+
+            // Determine scout target location
+            SetResourceScoutTargetPosition(aiGoalResourceScout);
+            SetEnemyScoutTargetPosition(aiGoalEnemyScout);
         }
 
         #endregion
@@ -249,6 +266,8 @@ namespace RTS.AI.Behavior
             if (type == AIGoalType.TrainUnit && variant == 1) return 0.6f; //military
             if (type == AIGoalType.BuildStructure && variant == 0) return 1.5f; //economy building
             if (type == AIGoalType.BuildStructure && variant == 1) return 0.7f; //military building
+            if (type == AIGoalType.AssignScout && variant == 0) return 1.2f; //resource scout
+            if (type == AIGoalType.AssignScout && variant == 1) return 0.6f; //enemy scout
             if (type == AIGoalType.LaunchAttackWave) return 0.4f;
             return 1f;
         }
@@ -256,6 +275,8 @@ namespace RTS.AI.Behavior
         private float StrategyAttack(AIGoalType type, int variant)
         {
             if (type == AIGoalType.TrainUnit && variant == 1) return 1.7f;
+            if (type == AIGoalType.AssignScout && variant == 0) return 0.6f; //resource scout
+            if (type == AIGoalType.AssignScout && variant == 1) return 1.3f; //enemy scout
             if (type == AIGoalType.LaunchAttackWave) return 1.8f;
             if (type == AIGoalType.AssignHarassment) return 1.4f;
             return 1f;
@@ -275,6 +296,7 @@ namespace RTS.AI.Behavior
         {
             if (type == AIGoalType.TrainUnit && variant == 0) return 1.7f;
             if (type == AIGoalType.BuildStructure) return 1.6f;
+            if (type == AIGoalType.AssignScout && variant == 0) return 1.1f; //resource scout
             if (type == AIGoalType.LaunchAttackWave) return 0.3f;
             return 1f;
         }
@@ -359,10 +381,37 @@ namespace RTS.AI.Behavior
             return Mathf.Clamp01(ratio - 1f);
         }
 
-        private float CalculatePatrolNeed()
+        private float CalculateResourceScoutNeed()
         {
-            float mapControl = dataManager.GetMapControlValue();
-            return Mathf.Clamp01(1f - mapControl);
+            // Percentage of ideal known resource node towards resource needs
+            float idealKnownResourceNode = (float)dataManager.GetResourceNeedsAmount() / idealResourceNeedsPerResourceNode;
+            int knownResourceNode = dataManager.GetKnownResourceNodeCount();
+            float knownResourceNodeRatio = Mathf.Clamp01(1f - (knownResourceNode / idealKnownResourceNode));
+
+            // Percentage of known resource node towards all of resource nodes
+            int totalActiveResourceNodes = playerInfo.GameManager.ResourceNodeManager.GetTotalActiveNodes();
+            float knownResourceNodeTowardsAllRatio = 1f - (knownResourceNode / totalActiveResourceNodes);
+
+            // Percentage of known tile map towards all of tile map (Fog of war percentage)
+            float mapControl = 1f - dataManager.GetMapControlValue();
+
+            // Ideal time since last map scout
+            float latestScoutGoalExecutedTime = dataManager.GetElapsedTimeSinceLastScout();
+            float scoutGoalExecutedTimeRatio = latestScoutGoalExecutedTime / idealGoalScoutExecuteInterval;
+
+            return knownResourceNodeRatio * knownResourceNodeTowardsAllRatio * mapControl * scoutGoalExecutedTimeRatio;
+        }
+
+        private float CalculateEnemyScoutNeed()
+        {
+            // Percentage of known enemy info towards actual enemy info
+            float enemyInfoPercentage = 1f - dataManager.GetKnownEnemyInfoPercentage();
+
+            // Ideal time since last enemy scout
+            float latestScoutGoalExecutedTime = dataManager.GetElapsedTimeSinceLastScout();
+            float scoutGoalExecutedTimeRatio = latestScoutGoalExecutedTime / idealGoalScoutExecuteInterval;
+
+            return enemyInfoPercentage * scoutGoalExecutedTimeRatio;
         }
 
         private float CalculateHarassmentNeed()
@@ -408,6 +457,30 @@ namespace RTS.AI.Behavior
                 return ResearchType.LevelUpAllAttackPoint;*/
 
             return ResearchType.LevelUpBaseArmor; // Placeholder for debug & monitoring purpose
+        }
+
+        #endregion
+
+        #region Goal Target Determination
+
+        private void SetResourceScoutTargetPosition(AIGoal aiGoal)
+        {
+            if (aiGoal == null)
+                return;
+
+            Vector3 unknownTile = dataManager.GetUnexploredTilesRandomly();
+
+            aiGoal.SetTargetPosition(unknownTile);
+        }
+
+        private void SetEnemyScoutTargetPosition(AIGoal aiGoal)
+        {
+            if (aiGoal == null)
+                return;
+
+            Vector3 aroundEnemyBaseTile = dataManager.GetTilesAroundEnemyBaseRandomly();
+
+            aiGoal.SetTargetPosition(aroundEnemyBaseTile);
         }
 
         #endregion

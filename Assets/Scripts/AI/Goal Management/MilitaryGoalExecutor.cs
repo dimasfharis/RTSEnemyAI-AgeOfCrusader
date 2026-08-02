@@ -22,7 +22,6 @@ namespace RTS.AI.GoalManagement
         private MilitaryUnitManager militaryUnitManager;
         private DataManager dataManager;
         private MapManager mapManager;
-        private PlayerStrategicData playerStrategicData;
 
         private Dictionary<AIGoal, MilitaryGroup> activeGroups;
         private List<AIGoal> goalsToRemove;
@@ -47,8 +46,6 @@ namespace RTS.AI.GoalManagement
             militaryUnitManager = owner.MilitaryUnitManager;
             dataManager = owner.DataManager;
             mapManager = owner.MapManager;
-
-            playerStrategicData = dataManager.GetPlayerStrategicData();
 
             activeGroups = new Dictionary<AIGoal, MilitaryGroup>();
             goalsToRemove = new List<AIGoal>();
@@ -196,11 +193,11 @@ namespace RTS.AI.GoalManagement
         {
             MilitaryGroup group = activeGroups[goal];
 
-            Vector3 patrolPoint = goal.TargetPosition;
+            Vector3 scoutPoint = goal.TargetPosition;
 
             if (!group.isEngaged)
             {
-                militaryUnitManager.IssueMoveCommand(group.units, patrolPoint);
+                militaryUnitManager.IssueMoveCommand(group.units, scoutPoint);
                 goal.IsExecuteStarted = true;
             }
         }
@@ -251,7 +248,7 @@ namespace RTS.AI.GoalManagement
 
         private void Scout_OnExecuteStarted(AIGoal aiGoal)
         {
-
+            goalCoordinator.RecordExecutedGoal(aiGoal);
         }
 
         private void Scout_OnCompleted(AIGoal aiGoal)
@@ -261,6 +258,8 @@ namespace RTS.AI.GoalManagement
             List<BaseUnitController> assignedUnits = group.units;
 
             militaryUnitManager.IssueMoveCommand(assignedUnits, townCenterPosition);
+
+            goalCoordinator.RecordCompletedGoal(aiGoal);
 
             aiGoal.UnlinkRelations();
             activeGroups[aiGoal].OnGroupDisbanded();
@@ -282,7 +281,7 @@ namespace RTS.AI.GoalManagement
 
             MilitaryGroup group = activeGroups[goal];
 
-            Vector3 ecoTarget = playerStrategicData.GetEnemyExposedEcoPosition();
+            Vector3 ecoTarget = dataManager.GetEstimatedExposedEnemyWorkerPosition();
 
             if (!group.isEngaged)
             {
@@ -528,7 +527,7 @@ namespace RTS.AI.GoalManagement
                     break;
 
                 case AIGoalType.ReinforceDefense:
-                    if (playerStrategicData.GetEnemyUnitsInRadius(townCenter.transform.position, 20f) <= 0f)
+                    if (dataManager.GetEstimatedEnemyUnitsInRadius(townCenter.transform.position, 20f) <= 0f)
                     {
                         CleanUp(goal);
                         return true;
@@ -564,16 +563,16 @@ namespace RTS.AI.GoalManagement
             switch (goal.GoalType)
             {
                 case AIGoalType.LaunchAttackWave:
-                    return mapManager.GetKnownEnemyBaseLocations();
+                    return mapManager.GetKnownEnemyBasePosition();
 
                 case AIGoalType.AssignHarassment:
-                    return playerStrategicData.GetEnemyExposedEcoPosition();
+                    return dataManager.GetEstimatedExposedEnemyWorkerPosition();
 
                 case AIGoalType.AssignScout:
-                    return playerStrategicData.GetPatrolPoint();
+                    //return dataManager.GetScoutPoint();
 
                 case AIGoalType.ReinforceDefense:
-                    return playerStrategicData.GetBaseDefensePoint();
+                    return dataManager.GetBaseDefensePoint();
             }
 
             return Vector3.zero;

@@ -18,8 +18,8 @@ namespace RTS.AI.Resources
         private GoalCoordinator goalCoordinator;
 
         private List<AIGoal> activeGoals;
-        private float activeGoalsUpdateTimer;
-        private const float activeGoalsUpdateInterval = 12f;
+        private float resourceNeedsUpdateTimer;
+        private const float resourceNeedsUpdateInterval = 5f;
 
         private List<ResourceAmount> resourceNeeds;
         private Dictionary<ResourceType, float> currentResourceNeedsRatio;
@@ -45,7 +45,13 @@ namespace RTS.AI.Resources
             if (goalCoordinator == null)
                 goalCoordinator = playerInfo.AIManager.GetEnemyBehaviorAIManager().GetGoalCoordinator();
 
-            UpdateResourceNeedsRatio();
+            resourceNeedsUpdateTimer += Time.deltaTime;
+            if (resourceNeedsUpdateTimer >= resourceNeedsUpdateInterval)
+            {
+                resourceNeedsUpdateTimer = 0f;
+
+                UpdateResourceNeedsRatio();
+            }
         }
 
         #endregion
@@ -55,24 +61,13 @@ namespace RTS.AI.Resources
         private void UpdateResourceNeedsRatio()
         {
             // Update the list of active goals
-            UpdateActiveGoals();
+            activeGoals = goalCoordinator.GetActiveGoals();
 
             // Extract resource needs from active goals
             resourceNeeds = ExtractResourceNeedsFromGoals();
 
             // Calculate the ratio of resource needs
             currentResourceNeedsRatio = CalculateResourceNeedsRatio(resourceNeeds);
-        }
-
-        private void UpdateActiveGoals()
-        {
-            activeGoalsUpdateTimer += Time.deltaTime;
-
-            if (activeGoalsUpdateTimer >= activeGoalsUpdateInterval)
-            {
-                activeGoalsUpdateTimer = 0f;
-                activeGoals = goalCoordinator.GetActiveGoals();
-            }
         }
 
         private List<ResourceAmount> ExtractResourceNeedsFromGoals()

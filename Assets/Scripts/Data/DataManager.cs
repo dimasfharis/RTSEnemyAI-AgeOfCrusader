@@ -1,15 +1,21 @@
+using RTS.AI.Behavior;
+using RTS.AI.Decision;
+using RTS.AI.GoalManagement;
+using RTS.AI.Resources;
+using RTS.Buildings.Data;
+using RTS.Common.Enums;
 using RTS.Core;
 using RTS.Managers;
-using RTS.Common.Enums;
-using RTS.World.ResourceNodeManagement;
-using UnityEngine;
-using RTS.Data.StrategicData;
-using RTS.Units.Data;
-using RTS.Buildings.Data;
+using RTS.Managers.Map;
 using RTS.Managers.Research;
 using RTS.Research.Data;
-using RTS.AI.Decision;
-using RTS.Managers.Map;
+using RTS.Units.Data;
+using RTS.World.ResourceNodeManagement;
+using RTS.World.WorldManagement;
+using System.Collections.Generic;
+using System.Linq;
+using UnityEngine;
+using UnityEngine.Tilemaps;
 
 namespace RTS.Data
 {
@@ -23,14 +29,16 @@ namespace RTS.Data
         private ResearchManager researchManager;
         private MapManager mapManager;
         private ResourceNodeManager resourceNodeManager;
-        private PlayerStrategicData playerStrategicData;
+        private WorldManager worldManager;
+
+        private ResourceManagementAIManager resourceManagementAIManager;
+
+        private GoalCoordinator goalCoordinator;
 
         public UnitDatabase unitDatabase;
         public BuildingDatabase buildingDatabase;
         public ResearchDatabase researchDatabase;
         public AIProfileDatabase aiProfileDatabase;
-
-        private Vector3 basePosition;
 
         #region Initialization
 
@@ -44,16 +52,12 @@ namespace RTS.Data
             researchManager = owner.ResearchManager;
             mapManager = owner.MapManager;
             resourceNodeManager = owner.ResourceNodeManager;
+            worldManager = playerInfo.GameManager.WorldManager;
 
             unitDatabase = GameObject.FindObjectOfType<UnitDatabase>();
             buildingDatabase = GameObject.FindObjectOfType<BuildingDatabase>();
             researchDatabase = GameObject.FindObjectOfType<ResearchDatabase>();
             aiProfileDatabase = GameObject.FindAnyObjectByType<AIProfileDatabase>();
-
-            playerStrategicData = new PlayerStrategicData(playerInfo, this);
-
-            // dont search here
-            //basePosition = buildingManager.GetBuilding(BuildingType.TownCenter).transform.position;
         }
 
         #endregion
@@ -83,7 +87,17 @@ namespace RTS.Data
 
         public float GetEstimatedEnemyMilitaryPower()
         {
-            return playerStrategicData.GetEstimatedEnemyMilitaryPower();
+            int totalPower = 0;
+            var knownEnemyUnits = mapManager.GetKnownEnemyUnits();
+
+            foreach (var unit in knownEnemyUnits)
+            {
+                int thisUnitPower = unitDatabase.GetUnitAttackPower(unit.Value.UnitType);
+
+                totalPower += thisUnitPower;
+            }
+
+            return totalPower;
         }
 
         #endregion
@@ -118,6 +132,19 @@ namespace RTS.Data
             float stone = resourceManager.GetIncomeRate(ResourceType.Stone);
 
             return (food + wood + gold + stone) / 4f;
+        }
+
+        public int GetResourceNeedsAmount()
+        {
+            if (resourceManagementAIManager == null)
+                resourceManagementAIManager = playerInfo.AIManager.GetResourceManagementAIManager();
+
+            return resourceManagementAIManager.GetAllResourceNeedsAmount();
+        }
+
+        public int GetKnownResourceNodeCount()
+        {
+            return mapManager.GetKnownResourceNodes().Count;
         }
 
         #endregion
@@ -179,12 +206,70 @@ namespace RTS.Data
 
         public int GetEnemyUnitsNearBase()
         {
-            return playerStrategicData.GetEnemyUnitsInRadius(basePosition, 20f);
+            Vector3 basePosition = buildingManager.GetBuilding(BuildingType.TownCenter) ?
+                buildingManager.GetBuilding(BuildingType.TownCenter).transform.position
+                : default;
+
+            return GetEstimatedEnemyUnitsInRadius(basePosition, 20f);
         }
 
         public int GetOurUnitsNearBase()
         {
+            Vector3 basePosition = buildingManager.GetBuilding(BuildingType.TownCenter) ?
+                buildingManager.GetBuilding(BuildingType.TownCenter).transform.position
+                : default;
+
             return militaryUnitManager.GetUnitsInRadius(basePosition, 20f).Count;
+        }
+
+        public Vector3 GetBaseDefensePoint()
+        {
+            Vector3 townhallPosition = buildingManager.GetBuilding(BuildingType.TownCenter).transform.position;
+            float radius = buildingDatabase.GetBuildingTemplate(BuildingType.TownCenter).lineOfSightRange * 4;
+            List<Vector3> directions = GetEnemyAttackDirectionWithinRadius(townhallPosition, radius);
+
+            Vector3 calculatedDirection = Vector3.zero;
+
+            foreach (var direction in directions)
+            {
+                calculatedDirection += (Vector3)direction;
+            }
+
+            return calculatedDirection /= directions.Count;
+        }
+
+        public List<Vector3> GetEnemyAttackDirectionWithinRadius(Vector3 towardPosition, float radius)
+        {
+            List<Vector3> directions = new List<Vector3>();
+            var knownEnemyUnits = mapManager.GetKnownEnemyUnits();
+
+            // if not seen the enemy yet, get enemy base direction
+            if (knownEnemyUnits == null || knownEnemyUnits.Count <= 0)
+            {
+                List<PlayerInfo> enemyPlayerInfo = playerInfo.GameManager.GetOpponentPlayerInfo(playerInfo.PlayerNumber);
+
+                if (enemyPlayerInfo != null && enemyPlayerInfo.Count > 0)
+                {
+                    Vector3 enemyBasePosition = enemyPlayerInfo[0].BuildingManager.GetBuilding(BuildingType.TownCenter).transform.position;
+                    Vector3 dirToBase = (enemyBasePosition - towardPosition).normalized;
+                    directions.Add(dirToBase);
+                }
+
+                return directions;
+            }
+
+            // Take directions towards towardPosition for each enemy unit in radius
+            foreach (var enemyUnit in knownEnemyUnits)
+            {
+                float distance = Vector3.Distance(towardPosition, enemyUnit.Key);
+                if (distance <= radius && distance > 0.01f)
+                {
+                    Vector3 dirToEnemy = (enemyUnit.Key - towardPosition).normalized;
+                    directions.Add(dirToEnemy);
+                }
+            }
+
+            return directions;
         }
 
         #endregion
@@ -195,6 +280,20 @@ namespace RTS.Data
         {
             float maxTime = 1200f;
             return Mathf.Clamp01(Time.time / maxTime);
+        }
+
+        public float GetElapsedTimeSinceLastScout()
+        {
+            float recentTime = Time.time;
+
+            if (goalCoordinator == null)
+                goalCoordinator = playerInfo.AIManager.GetEnemyBehaviorAIManager().GetGoalCoordinator();
+
+            AIGoal latestScoutGoal = goalCoordinator.GetLatestGoalExecuted(AIGoalType.AssignScout);
+
+            float latestScoutExecutedTime = latestScoutGoal != null ? latestScoutGoal.timeExecuted : 0f;
+
+            return recentTime - latestScoutExecutedTime;
         }
 
         public float GetTechProgressNormalized()
@@ -213,12 +312,52 @@ namespace RTS.Data
 
         public float GetMapControlValue()
         {
-            int ourNodes = mapManager.GetKnownResourceNodes().Count;
-            int totalNodes = resourceNodeManager.GetTotalActiveNodes();
+            int knownTiles = mapManager.GetExploredTiles().Count(x => x.Value > 0f);
+            int totalTiles = mapManager.GetExploredTiles().Count;
 
-            if (totalNodes == 0) return 1f;
+            if (totalTiles == 0) return 1f;
 
-            return Mathf.Clamp01((float) ourNodes / totalNodes);
+            return Mathf.Clamp01((float) knownTiles / totalTiles);
+        }
+
+        public Vector3 GetUnexploredTilesRandomly()
+        {
+            var unexploredTiles = mapManager.GetExploredTiles().Where(x => x.Value == 0f);
+            
+            List<PlayerInfo> enemyPlayerInfo = playerInfo.GameManager.GetOpponentPlayerInfo(playerInfo.PlayerNumber);
+            Vector3 enemyBasePosition = enemyPlayerInfo[0].BuildingManager.GetBuilding(BuildingType.TownCenter).transform.position;
+            List<Vector2Int> tilesAround = mapManager.GetTilesAround(enemyBasePosition, 10f);
+
+            // avoid tiles around enemy base
+            unexploredTiles = unexploredTiles.Where(x => !tilesAround.Contains(x.Key));
+
+            var validTilesList = unexploredTiles.ToList();
+
+            if (validTilesList.Count == 0)
+                return Vector3.zero;
+
+            int randomIndex = Random.Range(0, validTilesList.Count);
+            Vector2Int chosenTile = validTilesList[randomIndex].Key;
+            
+            return new Vector3(chosenTile.x, chosenTile.y, 0);
+        }
+
+        public Vector3 GetTilesAroundEnemyBaseRandomly()
+        {
+            List<PlayerInfo> enemyPlayerInfo = playerInfo.GameManager.GetOpponentPlayerInfo(playerInfo.PlayerNumber);
+            Vector3 enemyBasePosition = enemyPlayerInfo[0].BuildingManager.GetBuilding(BuildingType.TownCenter).transform.position;
+            List<Vector2Int> tilesAround = mapManager.GetTilesAround(enemyBasePosition, 10f);
+
+            // Make sure the tile is within the map
+            Tilemap groundTilemap = worldManager.tileDatabase.GetGroundTilemap();
+            List<Vector2Int> validTilesList = tilesAround
+                .Where(x => groundTilemap.HasTile(new Vector3Int(x.x, x.y, 0)))
+                .ToList();
+
+            int randomIndex = Random.Range(0, validTilesList.Count);
+            Vector2Int chosenTile = validTilesList[randomIndex];
+
+            return new Vector3(chosenTile.x, chosenTile.y, 0);
         }
 
         #endregion
@@ -227,8 +366,8 @@ namespace RTS.Data
 
         public float GetEnemyEcoExposureNormalized()
         {
-            int exposedWorkers = playerStrategicData.GetExposedEnemyWorkerCount();
-            int totalEnemyWorkers = playerStrategicData.GetEstimatedEnemyWorkerCount();
+            int exposedWorkers = GetEstimatedExposedEnemyWorkerCount();
+            int totalEnemyWorkers = GetEstimatedEnemyWorkerCount();
 
             if (totalEnemyWorkers == 0) return 1f;
 
@@ -237,14 +376,186 @@ namespace RTS.Data
 
         #endregion
 
+        #region Enemy Info Acknowledge
+
+        public float GetKnownEnemyInfoPercentage()
+        {
+            int knownEnemyMilitaryUnitCount = GetEstimatedEnemyMilitaryUnitCount();
+            int actualEnemyMilitaryUnitCount = GetActualEnemyMilitaryUnitCount();
+
+            int knownEnemyWorkerUnitCount = GetEstimatedEnemyWorkerCount();
+            int actualEnemyWorkerUnitCount = GetActualEnemyWorkerCount();
+
+            int knownEnemyBuildingCount = GetEstimatedEnemyBuildingCount();
+            int actualEnemyBuildingCount = GetActualEnemyBuildingCount();
+
+            float knownEnemyMilitaryPercentage = actualEnemyMilitaryUnitCount == 0 ? 1f :
+                (float) knownEnemyMilitaryUnitCount / actualEnemyMilitaryUnitCount;
+
+            float knownEnemyWorkerPercentage = actualEnemyWorkerUnitCount == 0 ? 1f :
+                (float) knownEnemyWorkerUnitCount / actualEnemyWorkerUnitCount;
+
+            float knownEnemyBuildingPercentage = actualEnemyBuildingCount == 0 ? 1f :
+                (float) knownEnemyBuildingCount / actualEnemyBuildingCount;
+
+            float totalKnownEnemyInfoPercentage = (knownEnemyMilitaryPercentage + knownEnemyWorkerPercentage + knownEnemyBuildingPercentage) / 3f;
+
+            return totalKnownEnemyInfoPercentage;
+        }
+
         #endregion
 
-        #region Public API
+        #region Enemy Military Unit
 
-        public PlayerStrategicData GetPlayerStrategicData()
+        private int GetActualEnemyMilitaryUnitCount()
         {
-            return playerStrategicData;
+            int totalUnits = 0;
+            var opponentsUnit = worldManager.GetAllOpponentUnits(playerInfo);
+
+            foreach (var unit in opponentsUnit)
+            {
+                if (unit.GetUnitInfo().unitType != UnitType.Worker)
+                {
+                    totalUnits++;
+                }
+            }
+
+            return totalUnits;
         }
+
+        public int GetEstimatedEnemyMilitaryUnitCount()
+        {
+            int totalUnits = 0;
+            var knownEnemyUnits = mapManager.GetKnownEnemyUnits();
+
+            foreach (var unit in knownEnemyUnits)
+            {
+                if (unit.Value.UnitType != UnitType.Worker)
+                {
+                    totalUnits++;
+                }
+            }
+
+            return totalUnits;
+        }
+
+        public int GetEstimatedEnemyUnitsInRadius(Vector3 position, float radius)
+        {
+            int totalCount = 0;
+            var knownEnemyUnits = mapManager.GetKnownEnemyUnits();
+
+            foreach (var unit in knownEnemyUnits)
+            {
+                if (Vector3.Distance(position, unit.Key) <= radius)
+                {
+                    totalCount++;
+                }
+            }
+
+            return totalCount;
+        }
+
+        #endregion
+
+        #region Enemy Worker Unit
+
+        private int GetActualEnemyWorkerCount()
+        {
+            int totalUnits = 0;
+            var opponentsUnit = worldManager.GetAllOpponentUnits(playerInfo);
+
+            foreach (var unit in opponentsUnit)
+            {
+                if (unit.GetUnitInfo().unitType == UnitType.Worker)
+                {
+                    totalUnits++;
+                }
+            }
+
+            return totalUnits;
+        }
+
+        public int GetEstimatedEnemyWorkerCount()
+        {
+            int totalWorkers = 0;
+            var knownEnemyUnits = mapManager.GetKnownEnemyUnits();
+
+            foreach (var unit in knownEnemyUnits)
+            {
+                if (unit.Value.UnitType == UnitType.Worker)
+                {
+                    totalWorkers++;
+                }
+            }
+
+            return totalWorkers;
+        }
+
+        public int GetEstimatedExposedEnemyWorkerCount()
+        {
+            int exposedEnemyWorkers = 0;
+            var knownEnemyUnits = mapManager.GetKnownEnemyUnits();
+            Vector3 knownEnemyBasePosition = mapManager.GetKnownEnemyBasePosition();
+
+            foreach (var enemyUnit in knownEnemyUnits)
+            {
+                if (enemyUnit.Value.UnitType == UnitType.Worker)
+                {
+                    if (Vector3.Distance(enemyUnit.Key, knownEnemyBasePosition) > 20f)
+                    {
+                        exposedEnemyWorkers++;
+                    }
+                }
+            }
+
+            return exposedEnemyWorkers;
+        }
+
+        public Vector3 GetEstimatedExposedEnemyWorkerPosition()
+        {
+            Vector3 ecoPosition = Vector3.zero;
+            var knownEnemyUnits = mapManager.GetKnownEnemyUnits();
+            Vector3 knownEnemyBasePosition = mapManager.GetKnownEnemyBasePosition();
+
+            foreach (var enemyUnit in knownEnemyUnits)
+            {
+                if (enemyUnit.Value.UnitType == UnitType.Worker)
+                {
+                    if (Vector3.Distance(enemyUnit.Key, knownEnemyBasePosition) > 20f)
+                    {
+                        ecoPosition = enemyUnit.Key;
+                    }
+                }
+            }
+
+            return ecoPosition;
+        }
+
+        #endregion
+
+        #region Enemy Building
+
+        private int GetActualEnemyBuildingCount()
+        {
+            int totalBuildings = 0;
+            var opponentsBuilding = worldManager.GetAllOpponentBuildings(playerInfo);
+
+            totalBuildings += opponentsBuilding.Count;
+
+            return totalBuildings;
+        }
+
+        public int GetEstimatedEnemyBuildingCount()
+        {
+            int totalBuildings = 0;
+            var knownEnemyBuildings = mapManager.GetKnownEnemyBuildings();
+
+            totalBuildings += knownEnemyBuildings.Count;
+
+            return totalBuildings;
+        }
+
+        #endregion
 
         #endregion
     }

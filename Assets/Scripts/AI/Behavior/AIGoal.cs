@@ -20,6 +20,10 @@ namespace RTS.AI.Behavior
         public event Action<int, int> OnProgressChanged;
         public event Action<AIGoal> OnCompleted;
 
+        // Time
+        public float timeExecuted;
+        public float timeCompleted;
+
         // Goal Status
         public AIGoalType GoalType { get; private set; }
         public float Score { get; private set; }
@@ -88,6 +92,7 @@ namespace RTS.AI.Behavior
         private void AIGoal_OnExecuteStarted(AIGoal aiGoal)
         {
             IsExecuteStarted = true;
+            timeExecuted = Time.time;
         }
 
         private void AIGoal_OnProgressChanged(int currentProgress, int targetAmount)

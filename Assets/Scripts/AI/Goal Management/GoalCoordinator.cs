@@ -17,11 +17,12 @@ namespace RTS.AI.GoalManagement
 
         private float goalsGeneratingTime;
         private const float updateGoalsTime = 12f;
-        private float goalExecutorTime;
-        private const float updateExecutorTime = 0.5f;
 
         private List<AIGoal> goalPool;
         private List<AIGoal> activeGoals;
+
+        private List<AIGoal> executedGoals;
+        private List<AIGoal> completedGoals;
 
         private PlayerInfo playerInfo;
         private EnemyBehaviorAIManager behaviorManager;
@@ -32,7 +33,7 @@ namespace RTS.AI.GoalManagement
         private MilitaryGoalExecutor militaryExecutor;
 
         // ===== Requirement Fullfillment =====
-        public Dictionary<AIGoal, UnitsRequest> unitRequests = new Dictionary<AIGoal, UnitsRequest>();
+        public Dictionary<AIGoal, UnitsRequest> unitRequests;
 
         #region Initialization
 
@@ -49,6 +50,10 @@ namespace RTS.AI.GoalManagement
 
             goalPool = new List<AIGoal>();
             activeGoals = new List<AIGoal>();
+
+            executedGoals = new List<AIGoal>();
+            completedGoals = new List<AIGoal>();
+            unitRequests = new Dictionary<AIGoal, UnitsRequest>();
 
             /*MaintainGoalPool();
             ActivateTopGoals();*/
@@ -202,7 +207,7 @@ namespace RTS.AI.GoalManagement
                 case AIGoalType.AssignScout:
                 case AIGoalType.AssignHarassment:
                 case AIGoalType.ReinforceDefense:
-                    //militaryExecutor.Execute(goal);
+                    militaryExecutor.Execute(goal);
                     break;
             }
         }
@@ -231,6 +236,37 @@ namespace RTS.AI.GoalManagement
             {
                 this.unitRequests.Add(goal, new UnitsRequest(unitRequests));
             }
+        }
+
+        #endregion
+
+        #region Executed & Completed Goals
+
+        public void RecordExecutedGoal(AIGoal aiGoal)
+        {
+            if (executedGoals.Contains(aiGoal))
+                return;
+
+            executedGoals.Add(aiGoal);
+        }
+
+        public void RecordCompletedGoal(AIGoal aiGoal)
+        {
+            if (completedGoals.Contains(aiGoal))
+                return;
+
+            completedGoals.Add(aiGoal);
+        }
+
+        public AIGoal GetLatestGoalExecuted(AIGoalType goalType)
+        {
+            if (executedGoals == null || executedGoals.Count <= 0)
+                return null;
+
+            return executedGoals
+                .Where(g => g.GoalType == goalType)
+                .OrderByDescending(g => g.timeExecuted)
+                .FirstOrDefault();
         }
 
         #endregion

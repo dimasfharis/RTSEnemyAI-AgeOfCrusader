@@ -5,7 +5,6 @@ using RTS.Core;
 using RTS.Managers;
 using RTS.Managers.Map;
 using RTS.Units.Worker;
-using RTS.World.ResourceNodeManagement;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -18,14 +17,6 @@ namespace RTS.AI.GoalManagement
         private WorkerManager workerManager;
         private MapManager mapManager;
 
-        private ResourceNodeManager resourceNodeManager;
-
-        private const float BASE_BUILD_RADIUS = 15f;
-        private const float executionTime = 8f;
-        private float currentTime;
-
-        private Vector3 basePosition;
-
         #region Initialization
 
         public BuildGoalExecutor(PlayerInfo owner)
@@ -34,11 +25,6 @@ namespace RTS.AI.GoalManagement
             buildingManager = owner.BuildingManager;
             workerManager = owner.WorkerManager;
             mapManager = owner.MapManager;
-
-            resourceNodeManager = owner.ResourceNodeManager;
-
-            // dont search here
-            //basePosition = buildingManager.GetBuilding(BuildingType.TownCenter).transform.position;
         }
 
         #endregion
@@ -116,7 +102,7 @@ namespace RTS.AI.GoalManagement
                 Vector3 baseRef = buildingManager.GetBuilding(BuildingType.TownCenter).transform.position;
                 float scanRadius = playerInfo.DataManager.buildingDatabase.GetBuildingTemplate(aiGoal.BuildingType).lineOfSightRange * 3;
 
-                List<Vector3> enemyDirections = playerInfo.DataManager.GetPlayerStrategicData().GetEnemyAttackDirectionWithinRadius(baseRef, scanRadius);
+                List<Vector3> enemyDirections = playerInfo.DataManager.GetEnemyAttackDirectionWithinRadius(baseRef, scanRadius);
 
                 Vector3 safeDirection = Vector3.zero;
 
@@ -160,7 +146,7 @@ namespace RTS.AI.GoalManagement
                 Vector3 baseRef = buildingManager.GetBuilding(BuildingType.TownCenter).transform.position;
                 float scanRadius = playerInfo.DataManager.buildingDatabase.GetBuildingTemplate(aiGoal.BuildingType).lineOfSightRange * 3;
 
-                List<Vector3> enemyDirections = playerInfo.DataManager.GetPlayerStrategicData().GetEnemyAttackDirectionWithinRadius(baseRef, scanRadius);
+                List<Vector3> enemyDirections = playerInfo.DataManager.GetEnemyAttackDirectionWithinRadius(baseRef, scanRadius);
 
                 Vector3 defenseDirection = Vector3.zero;
 

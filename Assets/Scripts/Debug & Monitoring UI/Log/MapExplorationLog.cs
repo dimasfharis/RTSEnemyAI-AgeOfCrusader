@@ -10,7 +10,7 @@ namespace RTS.Monitoring.Log
         public PlayerInfo playerInfo;
         private MapManager mapManager;
 
-        private float logTimeCreated;
+        public float logTimeCreated;
 
         public int exploredTileCount;
         public int totalTileCount;

@@ -6,6 +6,7 @@ using RTS.Units.Common;
 using RTS.World.ResourceNodeManagement;
 using RTS.World.WorldManagement;
 using System.Collections.Generic;
+using Unity.VisualScripting.Antlr3.Runtime.Tree;
 using UnityEngine;
 
 namespace RTS.Managers.Map
@@ -22,7 +23,7 @@ namespace RTS.Managers.Map
         private Dictionary<Vector3, ResourceNodeMemory> knownResourceNodes;
         private Dictionary<Vector3, EnemyBuildingMemory> knownEnemyBuildings;
         private Dictionary<Vector3, EnemyUnitMemory> knownEnemyUnits;
-        private Vector3 knownEnemyBaseLocation;
+        private Vector3 knownEnemyBasePosition;
 
         // Map Exploration
         private Dictionary<Vector2Int, float> exploredTiles;
@@ -54,7 +55,7 @@ namespace RTS.Managers.Map
 
             foreach (var opponent in opponents)
             {
-                knownEnemyBaseLocation = opponent.GameManager.GetStarterBaseLocation(opponent.PlayerNumber);
+                knownEnemyBasePosition = opponent.GameManager.GetStarterBaseLocation(opponent.PlayerNumber);
             }
         }
 
@@ -120,9 +121,9 @@ namespace RTS.Managers.Map
 
         private void RegisterEnemyBaseLocation(Vector3 position)
         {
-            if (knownEnemyBaseLocation != position)
+            if (knownEnemyBasePosition != position)
             {
-                knownEnemyBaseLocation = position;
+                knownEnemyBasePosition = position;
             }
         }
 
@@ -350,6 +351,26 @@ namespace RTS.Managers.Map
             return exploredTiles;
         }
 
+        public List<Vector2Int> GetTilesAround(Vector3 baseRef, float radius)
+        {
+            List<Vector2Int> tilesAround = new List<Vector2Int>();
+
+            int minX = Mathf.FloorToInt(baseRef.x - radius);
+            int maxX = Mathf.CeilToInt(baseRef.x + radius);
+            int minY = Mathf.FloorToInt(baseRef.y - radius);
+            int maxY = Mathf.CeilToInt(baseRef.y + radius);
+
+            for (int x = minX; x <= maxX; x++)
+            {
+                for (int y = minY; y <= maxY; y++)
+                {
+                    tilesAround.Add(new Vector2Int(x, y));
+                }
+            }
+
+            return tilesAround;
+        }
+
         public Dictionary<Vector3, ResourceNodeMemory> GetKnownResourceNodes()
         {
             return knownResourceNodes;
@@ -365,9 +386,9 @@ namespace RTS.Managers.Map
             return knownEnemyUnits;
         }
 
-        public Vector3 GetKnownEnemyBaseLocations()
+        public Vector3 GetKnownEnemyBasePosition()
         {
-            return knownEnemyBaseLocation;
+            return knownEnemyBasePosition;
         }
 
         #endregion

@@ -35,6 +35,6 @@ public class AIProfileSO : ScriptableObject
 
     [Header("Military Action Preferences")]
     public float AttackMultiplier = 1f;
-    public float PatrolMultiplier = 1f;
+    public float ScoutMultiplier = 1f;
     public float HarassMultiplier = 1f;
 }
