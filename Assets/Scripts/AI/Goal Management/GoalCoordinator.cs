@@ -200,7 +200,7 @@ namespace RTS.AI.GoalManagement
                     break;
 
                 case AIGoalType.ResearchUpgrade:
-                    researchExecutor.Execute(goal);
+                    //researchExecutor.Execute(goal);
                     break;
 
                 case AIGoalType.LaunchAttackWave:

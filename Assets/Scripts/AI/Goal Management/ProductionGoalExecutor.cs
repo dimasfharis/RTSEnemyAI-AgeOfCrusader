@@ -1,12 +1,11 @@
 using RTS.AI.Behavior;
 using RTS.Buildings.Common;
+using RTS.Buildings.Common.Interfaces;
 using RTS.Common.Enums;
 using RTS.Core;
 using RTS.Data;
 using RTS.Managers;
-using RTS.Buildings.Common.Interfaces;
 using System.Collections.Generic;
-using UnityEngine;
 
 namespace RTS.AI.GoalManagement
 {
@@ -16,8 +15,6 @@ namespace RTS.AI.GoalManagement
         private ResourceManager resourceManager;
         private DataManager dataManager;
         private BuildingManager buildingManager;
-
-        private const int MAX_PARALLEL_TRAIN = 3;
 
         #region Initialization
 
@@ -56,15 +53,7 @@ namespace RTS.AI.GoalManagement
                 return;
             }
 
-            /*int activeTraining = 0;
-
-            if (activeTraining >= MAX_PARALLEL_TRAIN)
-                return;
-
-            bool started = TryExecuteTrain(goal);
-
-            if (started)
-                activeTraining++;*/
+            TryExecuteTrain(goal);
         }
 
         private bool CanExecute(AIGoal goal)
@@ -82,33 +71,40 @@ namespace RTS.AI.GoalManagement
 
         private void FulfillRequirements(AIGoal goal)
         {
+            if (!buildingManager.HasRequiredProductionBuilding(goal.UnitTrainingRequirements))
+            {
+                // inform EnemyBehaviorAIManager to prioritize building needed
+                // set building needed isDependedByOther true
+                // for this train worker goal phase, just leave it this way
+                // do for later military unit train goal
+            }
 
+            // fulfill population capacity if not yet fulfilled
         }
 
         private bool TryExecuteTrain(AIGoal goal)
         {
-            /*// Get Unit Type to be trained
-            UnitType unitType = goal.UnitType;
+            // Get Building to train
+            Dictionary<UnitType, int> unitComposition = goal.UnitTrainingRequirements;
 
             // Unit Production Check
-            List<BaseBuildingController> allBuildings = buildingManager.GetAllBuildings();
-            foreach (BaseBuildingController building in allBuildings)
+            foreach (var unit in unitComposition)
             {
-                if (building is IUnitTrainer unitTrainer)
+                BaseBuildingController productionBuilding = buildingManager.GetRequiredProductionBuilding(unit.Key);
+
+                bool success = buildingManager.TryTrainUnit(productionBuilding, unit.Key, unit.Value);
+
+                if (success)
                 {
-                    bool success = buildingManager.TryTrainUnit(unitType, building);
+                    goal.AddProgress(unit.Value);
 
-                    if (success)
+                    if (goal.currentProgress >= goal.targetAmount)
                     {
-                        goal.AddProgress(1);
-
-                        if (goal.currentProgress >= goal.targetAmount)
-                            goal.MarkCompleted();
-
+                        goal.MarkCompleted();
                         return true;
                     }
                 }
-            }*/
+            }
 
             return false;
         }

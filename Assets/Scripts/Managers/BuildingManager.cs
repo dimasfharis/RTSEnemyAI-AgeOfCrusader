@@ -110,27 +110,6 @@ namespace RTS.Managers
             return nearest;
         }
 
-        public bool HasRequiredProductionBuilding(Dictionary<UnitType, int> unitComposition)
-        {
-            foreach (var unit in unitComposition)
-            {
-                if (!HasRequiredProductionBuilding(unit.Key))
-                    return false;
-            }
-
-            return true;
-        }
-
-        public bool HasRequiredProductionBuilding(UnitType unitType)
-        {
-            BuildingType buildingType = playerInfo.DataManager.unitDatabase.GetRequiredBuilding(unitType);
-
-            if (HasBuilding(buildingType))
-                return true;
-
-            return false;
-        }
-
         public bool HasBuilding(BuildingType type)
         {
             foreach (var building in buildings)
@@ -305,9 +284,59 @@ namespace RTS.Managers
 
         #endregion
 
+        #region Required Unit Production Building
+
+        public List<BaseBuildingController> GetRequiredProductionBuildings(Dictionary<UnitType, int> unitComposition)
+        {
+            List<BaseBuildingController> productionBuildings = new List<BaseBuildingController>();
+
+            foreach (var unit in unitComposition)
+            {
+                if (HasRequiredProductionBuilding(unit.Key))
+                {
+                    productionBuildings.Add(GetRequiredProductionBuilding(unit.Key));
+                }
+            }
+
+            return productionBuildings;
+        }
+
+        public BaseBuildingController GetRequiredProductionBuilding(UnitType unitType)
+        {
+            BuildingType buildingType = playerInfo.DataManager.unitDatabase.GetRequiredBuilding(unitType);
+
+            if (HasBuilding(buildingType))
+                return GetBuilding(buildingType);
+
+            return null;
+        }
+
+        public bool HasRequiredProductionBuilding(Dictionary<UnitType, int> unitComposition)
+        {
+            foreach (var unit in unitComposition)
+            {
+                if (!HasRequiredProductionBuilding(unit.Key))
+                    return false;
+            }
+
+            return true;
+        }
+
+        public bool HasRequiredProductionBuilding(UnitType unitType)
+        {
+            BuildingType buildingType = playerInfo.DataManager.unitDatabase.GetRequiredBuilding(unitType);
+
+            if (HasBuilding(buildingType))
+                return true;
+
+            return false;
+        }
+
+        #endregion
+
         #region Unit Training
 
-        public bool TryTrainUnit(UnitType unitType, BaseBuildingController building)
+        public bool TryTrainUnit(BaseBuildingController building, UnitType unitType, int amount)
         {
             bool canTrain = false;
 
@@ -316,7 +345,16 @@ namespace RTS.Managers
 
             if (building is IUnitTrainer trainer && building.CanAcceptTrainUnit(unitType))
             {
-                canTrain = trainer.TryTrainUnit(unitType);
+                for (int i = 0; i < amount; i++)
+                {
+                    canTrain = trainer.TryTrainUnit(unitType);
+
+                    if (!canTrain)
+                    {
+                        Debug.LogWarning("This building stop training at middle of progress!");
+                        return false;
+                    }
+                }
             }else
             {
                 Debug.LogWarning("This building cannot train units!");

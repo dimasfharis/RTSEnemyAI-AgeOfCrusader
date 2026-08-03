@@ -64,7 +64,7 @@ namespace RTS.Data
 
         #region Data Processing & Getter
 
-        #region Worker Data
+        #region Worker
 
         public int GetWorkerCount()
         {

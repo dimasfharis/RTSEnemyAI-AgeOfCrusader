@@ -306,7 +306,7 @@ namespace RTS.Core
             PlayerInfo player = Players[1];
             BuildingManager buildingManager = player.BuildingManager;
 
-            buildingManager.TryTrainUnit(unitTraining.unitTrainType, unitTraining.buildingTrainer);
+            buildingManager.TryTrainUnit(unitTraining.buildingTrainer, unitTraining.unitTrainType, 1);
         }
 
         #endregion
@@ -493,8 +493,8 @@ namespace RTS.Core
         {
             BaseBuildingController barrack = InitiateBuilding(playerInfo, BuildingType.Barracks, new Vector3(25, 15, 0));
 
-            InitiateUnit(playerInfo, UnitType.Militia, barrack, 8);
-            InitiateUnit(playerInfo, UnitType.Archer, barrack, 12);
+            //InitiateUnit(playerInfo, UnitType.Militia, barrack, 8);
+            //InitiateUnit(playerInfo, UnitType.Archer, barrack, 12);
         }
 
         private void InitiateDebugPlayer2(PlayerInfo playerInfo)

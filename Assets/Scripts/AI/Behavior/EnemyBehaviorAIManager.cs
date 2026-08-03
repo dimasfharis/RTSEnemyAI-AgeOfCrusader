@@ -309,10 +309,12 @@ namespace RTS.AI.Behavior
         {
             int currentWorkers = dataManager.GetWorkerCount();
             int idealWorkers = dataManager.GetIdealWorkerCount();
+            // add isDependedByOther, if true, then increase the score
 
             if (idealWorkers == 0) return 0f;
 
             float ratio = (float)currentWorkers / idealWorkers;
+            // sometimes, idealWorkers is 0, because 0 resource needs
 
             return Mathf.Clamp01(1f - ratio);
         }
@@ -321,6 +323,7 @@ namespace RTS.AI.Behavior
         {
             float ourPower = dataManager.GetOurMilitaryPower();
             float enemyPower = dataManager.GetEstimatedEnemyMilitaryPower();
+            // add isDependedByOther, if true, then increase the score
 
             if (enemyPower == 0) return 0.3f;
 
@@ -339,6 +342,7 @@ namespace RTS.AI.Behavior
         {
             int militaryBuildings = dataManager.GetMilitaryBuildingCount();
             int idealMilitaryBuildings = dataManager.GetIdealMilitaryBuildingCount();
+            // add isDependedByOther, if true, then increase the score
 
             return Mathf.Clamp01(1f - (float)militaryBuildings / idealMilitaryBuildings);
         }
