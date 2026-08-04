@@ -243,7 +243,6 @@ namespace RTS.World.WorldManagement
                     }
                     if (!groundTilemap.HasTile(position + new Vector3Int(x, y)))
                     {
-                        Debug.LogWarning($"{buildingType} can't be placed. There is not available Tile in ({position.x + x}, {position.y + y})");
                         return true;
                     }
                 }

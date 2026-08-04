@@ -103,7 +103,7 @@ namespace RTS.Data
 
         #endregion
 
-        #region Economy
+        #region Economy & Resource
 
         public float GetResourceSaturation()
         {
@@ -148,6 +148,14 @@ namespace RTS.Data
             return mapManager.GetKnownResourceNodes().Count;
         }
 
+        public int GetPopulationCapacityAmountNeeds()
+        {
+            if (resourceManagementAIManager == null)
+                resourceManagementAIManager = playerInfo.AIManager.GetResourceManagementAIManager();
+
+            return resourceManagementAIManager.GetPopulationCapacityAmountNeeds();
+        }
+
         #endregion
 
         #region Building
@@ -160,6 +168,11 @@ namespace RTS.Data
         public int GetIdealMilitaryBuildingCount()
         {
             return 3;
+        }
+
+        public int GetBuildingCount(BuildingType buildingType)
+        {
+            return buildingManager.CountBuilding(buildingType);
         }
 
         #endregion

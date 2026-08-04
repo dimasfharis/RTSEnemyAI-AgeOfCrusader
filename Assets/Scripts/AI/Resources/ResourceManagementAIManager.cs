@@ -24,6 +24,8 @@ namespace RTS.AI.Resources
         private List<ResourceAmount> resourceNeeds;
         private Dictionary<ResourceType, float> currentResourceNeedsRatio;
 
+        private int populationCapacityNeeds;
+
         #region Initialization
 
         public ResourceManagementAIManager(PlayerInfo owner)
@@ -65,6 +67,9 @@ namespace RTS.AI.Resources
 
             // Extract resource needs from active goals
             resourceNeeds = ExtractResourceNeedsFromGoals();
+
+            // Extract train unit amount needs from active goals
+            populationCapacityNeeds = ExtractPopulationCapacityNeedsFromGoals();
 
             // Calculate the ratio of resource needs
             currentResourceNeedsRatio = CalculateResourceNeedsRatio(resourceNeeds);
@@ -134,6 +139,28 @@ namespace RTS.AI.Resources
 
         #endregion
 
+        #region Population Capacity Needs
+
+        private int ExtractPopulationCapacityNeedsFromGoals()
+        {
+            int populationNeeds = 0;
+
+            foreach (AIGoal goal in activeGoals)
+            {
+                int amount = goal.GetPopulationCapacityNeeds();
+
+                populationNeeds += amount;
+            }
+
+            // Add current population
+            int currentPopulation = resourceManager.GetCurrentPopulation();
+            populationNeeds += currentPopulation;
+
+            return populationNeeds;
+        }
+
+        #endregion
+
         #region Mode Behaviors
 
         private void FocusBalancedEconomy()
@@ -187,6 +214,11 @@ namespace RTS.AI.Resources
             }
 
             return amount;
+        }
+
+        public int GetPopulationCapacityAmountNeeds()
+        {
+            return populationCapacityNeeds;
         }
 
         #endregion

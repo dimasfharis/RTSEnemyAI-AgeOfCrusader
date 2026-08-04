@@ -159,6 +159,25 @@ namespace RTS.AI.Behavior
 
         #endregion
 
+        #region Population Capacity Needs
+
+        public int GetPopulationCapacityNeeds()
+        {
+            if (UnitTrainingRequirements.Count == 0 ||  UnitTrainingRequirements == null)
+                return 0;
+
+            int needsAmount = 0;
+
+            foreach (var unit in UnitTrainingRequirements)
+            {
+                needsAmount += unit.Value;
+            }
+
+            return needsAmount;
+        }
+
+        #endregion
+
         #region Public API
 
         public AIGoal SetBuilding(BuildingType buildingType)

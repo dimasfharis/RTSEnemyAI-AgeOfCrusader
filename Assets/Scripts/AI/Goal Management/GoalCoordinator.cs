@@ -35,6 +35,9 @@ namespace RTS.AI.GoalManagement
         // ===== Requirement Fullfillment =====
         public Dictionary<AIGoal, UnitsRequest> unitRequests;
 
+        // notes
+        // after goal execution, goal is disappear directly. it suppose to still visible in UI while its progressing
+
         #region Initialization
 
         public GoalCoordinator(PlayerInfo owner, EnemyBehaviorAIManager behaviorManager)
@@ -196,7 +199,7 @@ namespace RTS.AI.GoalManagement
                     break;
 
                 case AIGoalType.BuildStructure:
-                    //buildExecutor.Execute(goal);
+                    buildExecutor.Execute(goal);
                     break;
 
                 case AIGoalType.ResearchUpgrade:

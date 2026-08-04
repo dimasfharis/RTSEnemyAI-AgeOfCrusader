@@ -23,8 +23,11 @@ namespace RTS.AI.Behavior
         // Ideal Value
         private float idealGoalScoutExecuteInterval = 30f;
         private float idealResourceNeedsPerResourceNode = 15f;
+
         private float idealUnitAmountToLaunchAttack = 25f;
         private float idealUnitAmountSoCalledLaunchAttack = 7f;
+
+        private float idealPopulationPerHouse = 4f;
 
         #region Initialization
 
@@ -120,6 +123,7 @@ namespace RTS.AI.Behavior
 
         private void EvaluateBuildGoals()
         {
+            float houseBuildingNeed = CalculateHouseBuildingNeed();
             float economyBuildingNeed = CalculateEconomyBuildingNeed();
             float militaryBuildingNeed = CalculateMilitaryBuildingNeed();
             float defensiveBuildingNeed = CalculateDefensiveBuildingNeed();
@@ -127,6 +131,11 @@ namespace RTS.AI.Behavior
             BuildingType ecoBuildingTypeNeeded = GetCurrentEcoBuildingTypeNeeded();
             BuildingType milBuildingTypeNeeded = GetCurrentMilBuildingTypeNeeded();
             BuildingType defBuildingTypeNeeded = GetCurrentDefBuildingTypeNeeded();
+
+            float houseScore =
+                houseBuildingNeed
+                * aiProfile.EconomyBuildingMultiplier
+                * GetStrategyMultiplier(AIGoalType.BuildStructure, 0);
 
             float ecoScore =
                 economyBuildingNeed *
@@ -142,6 +151,12 @@ namespace RTS.AI.Behavior
                 defensiveBuildingNeed *
                 aiProfile.DefenseMultiplier *
                 GetStrategyMultiplier(AIGoalType.BuildStructure, 2);
+
+            AIGoal buildHouseGoal = new AIGoal(playerInfo, AIGoalType.BuildStructure, houseScore);
+
+            buildHouseGoal.SetBuilding(BuildingType.House);
+
+            currentGoals.Add(buildHouseGoal);
 
             currentGoals.Add(
                 new AIGoal(playerInfo, AIGoalType.BuildStructure, ecoScore)
@@ -442,8 +457,19 @@ namespace RTS.AI.Behavior
 
         #endregion
 
-        #region Get Current Need
+        #region Building Needs
         // need more code polishing
+
+        private float CalculateHouseBuildingNeed()
+        {
+            // Ratio of population capacity towards needs of unit training goals
+            int populationNeeds = dataManager.GetPopulationCapacityAmountNeeds();
+            int idealHouseAmount = Mathf.CeilToInt(populationNeeds / idealPopulationPerHouse);
+
+            int ourHouseAmount = dataManager.GetBuildingCount(BuildingType.House);
+
+            return 1f - (ourHouseAmount / (idealHouseAmount + 1)); // +1 to prevent divided by zero
+        }
 
         private BuildingType GetCurrentEcoBuildingTypeNeeded()
         {
