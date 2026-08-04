@@ -493,7 +493,7 @@ namespace RTS.Core
         {
             BaseBuildingController barrack = InitiateBuilding(playerInfo, BuildingType.Barracks, new Vector3(25, 15, 0));
 
-            //InitiateUnit(playerInfo, UnitType.Militia, barrack, 8);
+            InitiateUnit(playerInfo, UnitType.Militia, barrack, 8);
             //InitiateUnit(playerInfo, UnitType.Archer, barrack, 12);
         }
 

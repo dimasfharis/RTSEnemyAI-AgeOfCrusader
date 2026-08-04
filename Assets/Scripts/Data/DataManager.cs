@@ -2,6 +2,7 @@ using RTS.AI.Behavior;
 using RTS.AI.Decision;
 using RTS.AI.GoalManagement;
 using RTS.AI.Resources;
+using RTS.Buildings.Common;
 using RTS.Buildings.Data;
 using RTS.Common.Enums;
 using RTS.Core;
@@ -180,7 +181,7 @@ namespace RTS.Data
             int towerCount = buildingManager.CountBuilding(BuildingType.GuardTower);
             int canonCount = buildingManager.CountBuilding(BuildingType.CannonTower);
 
-            int unitsNearBase = GetOurUnitsNearBase();
+            int unitsNearBase = GetOurUnitsNearBaseInRadius(20f);
 
             int maxBaseHealth = buildingDatabase.GetBuildingTemplate(BuildingType.TownCenter).maxHitPoint;
             int baseHealth = buildingManager.GetBuilding(BuildingType.TownCenter)?
@@ -204,38 +205,51 @@ namespace RTS.Data
             return Mathf.Clamp01(baseDamaged / maxBaseHealth);
         }
 
-        public int GetEnemyUnitsNearBase()
+        public int GetActualEnemyUnitsNearBaseInRadius(float radius)
         {
             Vector3 basePosition = buildingManager.GetBuilding(BuildingType.TownCenter) ?
                 buildingManager.GetBuilding(BuildingType.TownCenter).transform.position
                 : default;
 
-            return GetEstimatedEnemyUnitsInRadius(basePosition, 20f);
+            return GetActualEnemyMilitaryUnitsInRadius(basePosition, radius);
         }
 
-        public int GetOurUnitsNearBase()
+        public int GetEstimatedEnemyUnitsNearBaseInRadius(float radius)
         {
             Vector3 basePosition = buildingManager.GetBuilding(BuildingType.TownCenter) ?
                 buildingManager.GetBuilding(BuildingType.TownCenter).transform.position
                 : default;
 
-            return militaryUnitManager.GetUnitsInRadius(basePosition, 20f).Count;
+            return GetEstimatedEnemyUnitsInRadius(basePosition, radius);
         }
 
-        public Vector3 GetBaseDefensePoint()
+        public int GetOurUnitsNearBaseInRadius(float radius)
+        {
+            Vector3 basePosition = buildingManager.GetBuilding(BuildingType.TownCenter) ?
+                buildingManager.GetBuilding(BuildingType.TownCenter).transform.position
+                : default;
+
+            return militaryUnitManager.GetUnitsInRadius(basePosition, radius).Count;
+        }
+
+        public Vector3 GetBaseDefensePosition()
         {
             Vector3 townhallPosition = buildingManager.GetBuilding(BuildingType.TownCenter).transform.position;
             float radius = buildingDatabase.GetBuildingTemplate(BuildingType.TownCenter).lineOfSightRange * 4;
             List<Vector3> directions = GetEnemyAttackDirectionWithinRadius(townhallPosition, radius);
 
-            Vector3 calculatedDirection = Vector3.zero;
+            Vector3 defenseDirection = Vector3.zero;
 
             foreach (var direction in directions)
             {
-                calculatedDirection += (Vector3)direction;
+                defenseDirection += (Vector3)direction;
             }
 
-            return calculatedDirection /= directions.Count;
+            defenseDirection.Normalize();
+
+            BaseBuildingController outerBuildingInDirection = mapManager.GetOuterBuildingInDirection(townhallPosition, defenseDirection);
+
+            return outerBuildingInDirection.transform.position;
         }
 
         public List<Vector3> GetEnemyAttackDirectionWithinRadius(Vector3 towardPosition, float radius)
@@ -433,6 +447,25 @@ namespace RTS.Data
                 if (unit.Value.UnitType != UnitType.Worker)
                 {
                     totalUnits++;
+                }
+            }
+
+            return totalUnits;
+        }
+
+        private int GetActualEnemyMilitaryUnitsInRadius(Vector3 position, float radius)
+        {
+            int totalUnits = 0;
+            var opponentsUnit = worldManager.GetAllOpponentUnits(playerInfo);
+
+            foreach (var unit in opponentsUnit)
+            {
+                if (Vector3.Distance(position, unit.transform.position) <= radius)
+                {
+                    if (unit.GetUnitInfo().unitType != UnitType.Worker)
+                    {
+                        totalUnits++;
+                    }
                 }
             }
 

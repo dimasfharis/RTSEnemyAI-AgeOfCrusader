@@ -334,7 +334,9 @@ namespace RTS.Managers.Map
             {
                 if (building == baseRefBuilding) continue;
 
-                float angle = Vector3.Angle(direction, building.transform.position);
+                Vector3 buildingDirection = building.transform.position - baseRef;
+
+                float angle = Vector3.Angle(direction, buildingDirection);
                 float distance = Vector3.Distance(baseRef, building.transform.position);
                 if (angle < sensitivityAngle && distance > outerDistance)
                 {

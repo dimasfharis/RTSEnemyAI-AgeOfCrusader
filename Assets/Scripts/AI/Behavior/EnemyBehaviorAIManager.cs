@@ -23,6 +23,8 @@ namespace RTS.AI.Behavior
         // Ideal Value
         private float idealGoalScoutExecuteInterval = 30f;
         private float idealResourceNeedsPerResourceNode = 15f;
+        private float idealUnitAmountToLaunchAttack = 25f;
+        private float idealUnitAmountSoCalledLaunchAttack = 7f;
 
         #region Initialization
 
@@ -121,8 +123,7 @@ namespace RTS.AI.Behavior
             float economyBuildingNeed = CalculateEconomyBuildingNeed();
             float militaryBuildingNeed = CalculateMilitaryBuildingNeed();
             float defensiveBuildingNeed = CalculateDefensiveBuildingNeed();
-            float defenseNeed = CalculateDefenseNeed();
-
+            
             BuildingType ecoBuildingTypeNeeded = GetCurrentEcoBuildingTypeNeeded();
             BuildingType milBuildingTypeNeeded = GetCurrentMilBuildingTypeNeeded();
             BuildingType defBuildingTypeNeeded = GetCurrentDefBuildingTypeNeeded();
@@ -142,11 +143,6 @@ namespace RTS.AI.Behavior
                 aiProfile.DefenseMultiplier *
                 GetStrategyMultiplier(AIGoalType.BuildStructure, 2);
 
-            float defenseScore =
-                defenseNeed *
-                aiProfile.DefenseMultiplier *
-                GetStrategyMultiplier(AIGoalType.ReinforceDefense);
-
             currentGoals.Add(
                 new AIGoal(playerInfo, AIGoalType.BuildStructure, ecoScore)
                 .SetBuilding(ecoBuildingTypeNeeded));
@@ -158,9 +154,6 @@ namespace RTS.AI.Behavior
             currentGoals.Add(
                 new AIGoal(playerInfo, AIGoalType.BuildStructure, buildDefenseScore)
                 .SetBuilding(defBuildingTypeNeeded));
-
-            currentGoals.Add(
-                new AIGoal(playerInfo, AIGoalType.ReinforceDefense, defenseScore));
         }
 
         #endregion
@@ -193,6 +186,7 @@ namespace RTS.AI.Behavior
             float resourceScoutNeed = CalculateResourceScoutNeed();
             float enemyScoutNeed = CalculateEnemyScoutNeed();
             float harassmentNeed = CalculateHarassmentNeed();
+            float defenseNeed = CalculateDefenseNeed();
 
             float attackScore =
                 attackOpportunity *
@@ -214,6 +208,11 @@ namespace RTS.AI.Behavior
                 aiProfile.HarassMultiplier *
                 GetStrategyMultiplier(AIGoalType.AssignHarassment);
 
+            float defenseScore =
+                defenseNeed *
+                aiProfile.DefenseMultiplier *
+                GetStrategyMultiplier(AIGoalType.ReinforceDefense);
+
             currentGoals.Add(
                 new AIGoal(playerInfo, AIGoalType.LaunchAttackWave, attackScore));
 
@@ -226,9 +225,16 @@ namespace RTS.AI.Behavior
             currentGoals.Add(
                 new AIGoal(playerInfo, AIGoalType.AssignHarassment, harassmentScore));
 
+            AIGoal aiGoalDefense = new AIGoal(playerInfo, AIGoalType.ReinforceDefense, defenseScore);
+
+            currentGoals.Add(aiGoalDefense);
+
             // Determine scout target location
             SetResourceScoutTargetPosition(aiGoalResourceScout);
             SetEnemyScoutTargetPosition(aiGoalEnemyScout);
+
+            // Determine reinforce defense position
+            SetBaseDefensePosition(aiGoalDefense);
         }
 
         #endregion
@@ -357,14 +363,6 @@ namespace RTS.AI.Behavior
             return Mathf.Clamp01(enemyThreat / baseDefense);
         }
 
-        private float CalculateDefenseNeed()
-        {
-            float enemyNearBase = dataManager.GetEnemyUnitsNearBase();
-            float ourUnitsNearBase = dataManager.GetOurUnitsNearBase();
-
-            return Mathf.Clamp01(enemyNearBase / (ourUnitsNearBase + 1)); // +1 to avoid division by zero
-        }
-
         private float CalculateResearchNeed()
         {
             float gameTime = dataManager.GetGameTimeNormalized();
@@ -422,6 +420,24 @@ namespace RTS.AI.Behavior
         {
             float EnemyEcoExposure = dataManager.GetEnemyEcoExposureNormalized();
             return Mathf.Clamp01(EnemyEcoExposure);
+        }
+
+        private float CalculateDefenseNeed()
+        {
+            // Percentage of possibility the enemy will launch attack
+            // known enemy military units towards ideal amount of unit to launch attack
+            int knownEnemyMilitaryUnitCount = dataManager.GetEstimatedEnemyMilitaryUnitCount();
+            float idealUnitAmountToLaunchAttackRatio = (float)knownEnemyMilitaryUnitCount / idealUnitAmountToLaunchAttack;
+
+            // Percentage of actual enemy unit starting to enter the base
+            int actualEnemyUnitsNearBase = dataManager.GetActualEnemyUnitsNearBaseInRadius(25f);
+            float soCalledLaunchAttackScore = (float)actualEnemyUnitsNearBase / idealUnitAmountSoCalledLaunchAttack;
+
+            // Percentage of our vs estimated enemy units. smaller our units, larger the score
+            float ourUnitsNearBase = dataManager.GetOurUnitsNearBaseInRadius(20f);
+            float ourVsEnemyEstimatedUnitAmount = 1f - ourUnitsNearBase / (knownEnemyMilitaryUnitCount + 1); // +1 to avoid division by zero
+
+            return Mathf.Clamp01((idealUnitAmountToLaunchAttackRatio + soCalledLaunchAttackScore + soCalledLaunchAttackScore) / 3);
         }
 
         #endregion
@@ -485,6 +501,16 @@ namespace RTS.AI.Behavior
             Vector3 aroundEnemyBaseTile = dataManager.GetTilesAroundEnemyBaseRandomly();
 
             aiGoal.SetTargetPosition(aroundEnemyBaseTile);
+        }
+
+        private void SetBaseDefensePosition(AIGoal aiGoal)
+        {
+            if (aiGoal == null)
+                return;
+
+            Vector3 defensePosition = dataManager.GetBaseDefensePosition();
+
+            aiGoal.SetTargetPosition(defensePosition);
         }
 
         #endregion

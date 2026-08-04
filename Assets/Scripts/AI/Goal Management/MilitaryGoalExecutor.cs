@@ -36,6 +36,7 @@ namespace RTS.AI.GoalManagement
 
         // Timer
         private float defenseGoalTimer;
+        private float defenseGoalInterval = 1f;
 
         #region Initialization
 
@@ -317,9 +318,6 @@ namespace RTS.AI.GoalManagement
                 goal.OnExecuteStarted += Defense_OnExecuteStarted;
                 goal.OnCompleted += Defense_OnCompleted;
             }
-
-            // use this to determine defense position
-            // Vector3 defensePoint = playerStrategicData.GetBaseDefensePoint();
         }
 
         private void ReinforceDefenseTick(AIGoal goal)
@@ -334,9 +332,11 @@ namespace RTS.AI.GoalManagement
             {
                 defenseGoalTimer += Time.deltaTime;
 
-                if (defenseGoalTimer >= goal.targetAmount)
+                if (defenseGoalTimer >= defenseGoalInterval)
                 {
-                    goal.AddProgress(goal.targetAmount);
+                    defenseGoalInterval++;
+
+                    goal.AddProgress(1);
                 }
             }
         }
@@ -350,17 +350,12 @@ namespace RTS.AI.GoalManagement
             if (!group.isEngaged)
             {
                 militaryUnitManager.IssueMoveCommand(group.units, defensePoint);
-                Debug.Log("Defense started...");
             }
         }
 
         private bool CanExecuteDefense(AIGoal goal)
         {
             // Check if there are duplicated defense goal
-
-            // Check if there are units available for defense
-            if (militaryUnitManager.GetAvailableUnits().Count < requiredUnitsForDefense)
-                return false;
 
             return true;
         }
@@ -572,7 +567,7 @@ namespace RTS.AI.GoalManagement
                     //return dataManager.GetScoutPoint();
 
                 case AIGoalType.ReinforceDefense:
-                    return dataManager.GetBaseDefensePoint();
+                    return dataManager.GetBaseDefensePosition();
             }
 
             return Vector3.zero;

@@ -1,6 +1,5 @@
 using RTS.AI.Behavior;
 using RTS.Buildings.Common;
-using RTS.Buildings.Common.Interfaces;
 using RTS.Common.Enums;
 using RTS.Core;
 using RTS.Data;
@@ -32,7 +31,7 @@ namespace RTS.AI.GoalManagement
 
         public void Tick()
         {
-
+            // check for unexecuted goal, try to execute again
         }
 
         #endregion
