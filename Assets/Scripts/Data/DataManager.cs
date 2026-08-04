@@ -5,6 +5,7 @@ using RTS.AI.Resources;
 using RTS.Buildings.Common;
 using RTS.Buildings.Data;
 using RTS.Common.Enums;
+using RTS.Common.Structs;
 using RTS.Core;
 using RTS.Managers;
 using RTS.Managers.Map;
@@ -105,16 +106,6 @@ namespace RTS.Data
 
         #region Economy & Resource
 
-        public float GetResourceSaturation()
-        {
-            float worker = GetWorkerCount();
-            float ideal = GetIdealWorkerCount();
-
-            if (ideal == 0) return 1f;
-
-            return Mathf.Clamp01(worker / ideal);
-        }
-
         public float GetTotalResourceStockpile()
         {
             int food = resourceManager.GetAmount(ResourceType.Food);
@@ -148,6 +139,34 @@ namespace RTS.Data
             return mapManager.GetKnownResourceNodes().Count;
         }
 
+        public float CalculateRatioResourceAmountNeeds(BuildingType buildingType, float idealResourceRatioForBuild)
+        {
+            int count = 0;
+            float finalRatio = 0f;
+
+            List<ResourceAmount> resourceNeeds = resourceManager.GetStructureResourceAmount(new Dictionary<BuildingType, int>(){ {buildingType, 1 } });
+
+            if (resourceNeeds == null || resourceNeeds.Count == 0)
+                return 0f;
+
+            foreach (var resource in resourceNeeds)
+            {
+                if (resource.amount <= 0)
+                    continue;
+
+                count++;
+
+                int ourResourceAmount = resourceManager.GetAmount(resource.resourceType);
+
+                finalRatio += (float)ourResourceAmount / (resource.amount * idealResourceRatioForBuild);
+            }
+
+            if (count == 0)
+                return 0f;
+
+            return finalRatio / count;
+        }
+
         public int GetPopulationCapacityAmountNeeds()
         {
             if (resourceManagementAIManager == null)
@@ -173,6 +192,27 @@ namespace RTS.Data
         public int GetBuildingCount(BuildingType buildingType)
         {
             return buildingManager.CountBuilding(buildingType);
+        }
+
+        #endregion
+
+        #region Unit Training
+
+        public int GetTrainUnitNeedsCount(BuildingType buildingType)
+        {
+            if (goalCoordinator == null)
+                goalCoordinator = playerInfo.AIManager.GetEnemyBehaviorAIManager().GetGoalCoordinator();
+
+            var trainableUnits = buildingDatabase.GetTrainableUnits(buildingType);
+            var unitRequests = goalCoordinator.GetUnitRequest();
+
+            if (trainableUnits == null || unitRequests == null)
+                return 0;
+
+            return unitRequests.Values
+                .SelectMany(u => u.unitRequests)
+                .Where(kvp => trainableUnits.Contains(kvp.Key))
+                .Sum(kvp => kvp.Value);
         }
 
         #endregion

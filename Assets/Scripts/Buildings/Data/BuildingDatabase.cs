@@ -79,11 +79,11 @@ namespace RTS.Buildings.Data
             return buildingInfo.buildingCategory;
         }
 
-        public List<ResourceType> GetBuildingAcceptedResources(BuildingType buildingType)
+        public List<UnitType> GetTrainableUnits(BuildingType buildingType)
         {
             BuildingInfoSO buildingInfo = GetBuildingTemplate(buildingType);
 
-            return buildingInfo.acceptedResources;
+            return buildingInfo.trainableUnits;
         }
 
         #endregion

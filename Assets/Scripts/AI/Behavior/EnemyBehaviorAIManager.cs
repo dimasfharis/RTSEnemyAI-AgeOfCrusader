@@ -28,6 +28,8 @@ namespace RTS.AI.Behavior
         private float idealUnitAmountSoCalledLaunchAttack = 7f;
 
         private float idealPopulationPerHouse = 4f;
+        private float idealResourceRatioForBuild = 1.3f;
+        private float idealUnitNeedsAmountToBuild = 3f;
 
         #region Initialization
 
@@ -124,12 +126,10 @@ namespace RTS.AI.Behavior
         private void EvaluateBuildGoals()
         {
             float houseBuildingNeed = CalculateHouseBuildingNeed();
-            float economyBuildingNeed = CalculateEconomyBuildingNeed();
-            float militaryBuildingNeed = CalculateMilitaryBuildingNeed();
+            float barrackBuildingNeed = CalculateBarrackBuildingNeed();
+            float siegeWorkshopBuildingNeed = CalculateSiegeWorkshopNeed();
             float defensiveBuildingNeed = CalculateDefensiveBuildingNeed();
             
-            BuildingType ecoBuildingTypeNeeded = GetCurrentEcoBuildingTypeNeeded();
-            BuildingType milBuildingTypeNeeded = GetCurrentMilBuildingTypeNeeded();
             BuildingType defBuildingTypeNeeded = GetCurrentDefBuildingTypeNeeded();
 
             float houseScore =
@@ -137,13 +137,13 @@ namespace RTS.AI.Behavior
                 * aiProfile.EconomyBuildingMultiplier
                 * GetStrategyMultiplier(AIGoalType.BuildStructure, 0);
 
-            float ecoScore =
-                economyBuildingNeed *
-                aiProfile.EconomyBuildingMultiplier *
-                GetStrategyMultiplier(AIGoalType.BuildStructure, 0);
+            float barrackScore =
+                barrackBuildingNeed *
+                aiProfile.MilitaryBuildingMultiplier *
+                GetStrategyMultiplier(AIGoalType.BuildStructure, 1);
 
-            float militaryScore =
-                militaryBuildingNeed *
+            float siegeScore =
+                siegeWorkshopBuildingNeed *
                 aiProfile.MilitaryBuildingMultiplier *
                 GetStrategyMultiplier(AIGoalType.BuildStructure, 1);
 
@@ -153,18 +153,16 @@ namespace RTS.AI.Behavior
                 GetStrategyMultiplier(AIGoalType.BuildStructure, 2);
 
             AIGoal buildHouseGoal = new AIGoal(playerInfo, AIGoalType.BuildStructure, houseScore);
+            AIGoal buildBarrackGoal = new AIGoal(playerInfo, AIGoalType.BuildStructure, barrackScore);
+            AIGoal buildSiegeGoal = new AIGoal(playerInfo, AIGoalType.BuildStructure, siegeScore);
 
             buildHouseGoal.SetBuilding(BuildingType.House);
+            buildBarrackGoal.SetBuilding(BuildingType.Barracks);
+            buildSiegeGoal.SetBuilding(BuildingType.SiegeWorkshop);
 
             currentGoals.Add(buildHouseGoal);
-
-            currentGoals.Add(
-                new AIGoal(playerInfo, AIGoalType.BuildStructure, ecoScore)
-                .SetBuilding(ecoBuildingTypeNeeded));
-
-            currentGoals.Add(
-                new AIGoal(playerInfo, AIGoalType.BuildStructure, militaryScore)
-                .SetBuilding(milBuildingTypeNeeded));
+            currentGoals.Add(buildBarrackGoal);
+            currentGoals.Add(buildSiegeGoal);
 
             currentGoals.Add(
                 new AIGoal(playerInfo, AIGoalType.BuildStructure, buildDefenseScore)
@@ -353,12 +351,6 @@ namespace RTS.AI.Behavior
             return Mathf.Clamp01(1f - ratio);
         }
 
-        private float CalculateEconomyBuildingNeed()
-        {
-            float resourceSaturation = dataManager.GetResourceSaturation();
-            return Mathf.Clamp01(1f - resourceSaturation);
-        }
-
         private float CalculateMilitaryBuildingNeed()
         {
             int militaryBuildings = dataManager.GetMilitaryBuildingCount();
@@ -471,20 +463,28 @@ namespace RTS.AI.Behavior
             return 1f - (ourHouseAmount / (idealHouseAmount + 1)); // +1 to prevent divided by zero
         }
 
-        private BuildingType GetCurrentEcoBuildingTypeNeeded()
+        private float CalculateBarrackBuildingNeed()
         {
-            /*if (dataManager.IsGoldIncomeLow())
-                return BuildingType.GoldMine;*/
+            // Percentage of available resources (settle condition for build military building)
+            float buildingResourceNeedsRatio = dataManager.CalculateRatioResourceAmountNeeds(BuildingType.Barracks, idealResourceRatioForBuild);
 
-            return BuildingType.LumberMill; // Placeholder for debug & monitoring purpose
+            // Increase score, if depended by other goals
+            int trainUnitNeedsCount = dataManager.GetTrainUnitNeedsCount(BuildingType.Barracks);
+            float trainUnitNeedsScore = trainUnitNeedsCount / idealUnitNeedsAmountToBuild;
+
+            return buildingResourceNeedsRatio * trainUnitNeedsScore;
         }
 
-        private BuildingType GetCurrentMilBuildingTypeNeeded()
+        private float CalculateSiegeWorkshopNeed()
         {
-            /*if (playerInfo.BuildingManager.HasBuilding(BuildingType.Barracks) == false)
-                return BuildingType.Barracks;*/
+            // Percentage of available resources (settle condition for build military building)
+            float buildingResourceNeedsRatio = dataManager.CalculateRatioResourceAmountNeeds(BuildingType.SiegeWorkshop, idealResourceRatioForBuild);
 
-            return BuildingType.SiegeWorkshop; // Placeholder for debug & monitoring purpose
+            // Increase score, if depended by other goals
+            int trainUnitNeedsCount = dataManager.GetTrainUnitNeedsCount(BuildingType.SiegeWorkshop);
+            float trainUnitNeedsScore = trainUnitNeedsCount / idealUnitNeedsAmountToBuild;
+
+            return buildingResourceNeedsRatio * trainUnitNeedsScore;
         }
 
         private BuildingType GetCurrentDefBuildingTypeNeeded()

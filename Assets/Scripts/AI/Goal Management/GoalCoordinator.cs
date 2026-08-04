@@ -1,6 +1,7 @@
 using RTS.AI.Behavior;
 using RTS.Common.Enums;
 using RTS.Core;
+using RTS.Managers;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -34,6 +35,7 @@ namespace RTS.AI.GoalManagement
 
         // ===== Requirement Fullfillment =====
         public Dictionary<AIGoal, UnitsRequest> unitRequests;
+        // check for this unitRequests use (are they request it properly)
 
         // notes
         // after goal execution, goal is disappear directly. it suppose to still visible in UI while its progressing
@@ -294,6 +296,11 @@ namespace RTS.AI.GoalManagement
         public List<AIGoal> GetActiveGoals()
         {
             return activeGoals;
+        }
+
+        public Dictionary<AIGoal, UnitsRequest> GetUnitRequest()
+        {
+            return unitRequests;
         }
 
         #endregion
