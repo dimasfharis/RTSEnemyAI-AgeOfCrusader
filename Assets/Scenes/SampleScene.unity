@@ -121820,6 +121820,31 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 42e6ecf6b9a303240a0a03321d650374, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  doBuild:
+    playerNumber: 0
+    buildingType: 0
+  damageBuilding:
+    buildingToDamaged: {fileID: 0}
+    damageAmount: 0
+  doDefense:
+    playerNumber: 0
+    defensePosition: {x: 0, y: 0, z: 0}
+  doScout:
+    playerNumber: 0
+    scoutPosition: {x: 0, y: 0, z: 0}
+  reinforceAttackWave:
+    playerNumber: 0
+    fromPosition: {x: 0, y: 0, z: 0}
+    radius: 0
+    targetPosition: {x: 0, y: 0, z: 0}
+  generateUnits:
+    playerNumber: 0
+    buildingToSpawn: {fileID: 0}
+    unitTypeToSpawn: 0
+    numberOfUnitToSpawn: 0
+  attackUnit:
+    unitAttacker: {fileID: 0}
+    opponentUnit: {fileID: 0}
   addResources:
     addWood: 0
     addGold: 0
@@ -121841,9 +121866,13 @@ MonoBehaviour:
   resourceGathering:
     workers: []
     resourceType: 0
+  stopResourceGathering:
+    workers: []
   unitPathfinding:
     units: []
     destination: {x: 0, y: 0, z: 0}
+  mapExplorationPrintLog:
+    playerNumber: 0
 --- !u!1001 &1808533899
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -125213,6 +125242,50 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 4254107974711792854, guid: 5dea49a7f10eebb458315068f0d8476b, type: 3}
   m_PrefabInstance: {fileID: 1929075333}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1933946453
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1933946455}
+  - component: {fileID: 1933946454}
+  m_Layer: 0
+  m_Name: AIMonitoringUI
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1933946454
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1933946453}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e0d5758ce0b3a024fbdc8ab03593600b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!4 &1933946455
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1933946453}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 56.459446, y: 64.44567, z: -0.037815623}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &1934025948
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -129682,3 +129755,4 @@ SceneRoots:
   - {fileID: 1702788056}
   - {fileID: 1221308619}
   - {fileID: 1624817997}
+  - {fileID: 1933946455}
