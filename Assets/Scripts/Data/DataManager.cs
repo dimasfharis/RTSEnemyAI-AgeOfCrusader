@@ -179,14 +179,12 @@ namespace RTS.Data
 
         #region Building
 
-        public int GetMilitaryBuildingCount()
+        public int GetNonDefensiveBuildingCount()
         {
-            return buildingManager.GetBuildingCountByCategory(BuildingCategory.Military);
-        }
+            int economyBuildingCount = buildingManager.GetBuildingCountByCategory(BuildingCategory.Economic);
+            int militaryBuildingCount = buildingManager.GetBuildingCountByCategory(BuildingCategory.Military);
 
-        public int GetIdealMilitaryBuildingCount()
-        {
-            return 3;
+            return economyBuildingCount + militaryBuildingCount;
         }
 
         public int GetBuildingCount(BuildingType buildingType)
@@ -219,6 +217,16 @@ namespace RTS.Data
 
         #region Defense
 
+        public float GetEstimatedMilitaryPowerRatio()
+        {
+            float ourPower = GetOurMilitaryPower();
+            float enemyPower = GetEstimatedEnemyMilitaryPower();
+
+            if (enemyPower == 0) return 1f;
+
+            return Mathf.Clamp01(ourPower / enemyPower);
+        }
+
         public float GetEnemyThreatLevel()
         {
             float enemyPower = GetEstimatedEnemyMilitaryPower();
@@ -227,23 +235,6 @@ namespace RTS.Data
             if (ourPower == 0) return 1f;
 
             return Mathf.Clamp01(enemyPower / ourPower);
-        }
-
-        public float GetBaseDefenseLevel()
-        {
-            int towerCount = buildingManager.CountBuilding(BuildingType.GuardTower);
-            int canonCount = buildingManager.CountBuilding(BuildingType.CannonTower);
-
-            int unitsNearBase = GetOurUnitsNearBaseInRadius(20f);
-
-            int maxBaseHealth = buildingDatabase.GetBuildingTemplate(BuildingType.TownCenter).maxHitPoint;
-            int baseHealth = buildingManager.GetBuilding(BuildingType.TownCenter)?
-                buildingManager.GetBuilding(BuildingType.TownCenter).GetBuildingInfo().currentHitPoint
-                : maxBaseHealth;
-
-            float defenseScore = (towerCount * 0.3f) + (canonCount * 0.5f) + (unitsNearBase * 0.2f) + (baseHealth / maxBaseHealth);
-
-            return defenseScore;
         }
 
         public float GetBaseDamageLevel()

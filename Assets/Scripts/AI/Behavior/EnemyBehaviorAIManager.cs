@@ -31,6 +31,8 @@ namespace RTS.AI.Behavior
         private float idealResourceRatioForBuild = 1.3f;
         private float idealUnitNeedsAmountToBuild = 3f;
 
+        private float idealBuildingPerDefensiveBuildingCount = 3f;
+
         #region Initialization
 
         public EnemyBehaviorAIManager(PlayerInfo owner, AIManager aiManager)
@@ -129,8 +131,6 @@ namespace RTS.AI.Behavior
             float barrackBuildingNeed = CalculateBarrackBuildingNeed();
             float siegeWorkshopBuildingNeed = CalculateSiegeWorkshopNeed();
             float defensiveBuildingNeed = CalculateDefensiveBuildingNeed();
-            
-            BuildingType defBuildingTypeNeeded = GetCurrentDefBuildingTypeNeeded();
 
             float houseScore =
                 houseBuildingNeed
@@ -147,7 +147,7 @@ namespace RTS.AI.Behavior
                 aiProfile.MilitaryBuildingMultiplier *
                 GetStrategyMultiplier(AIGoalType.BuildStructure, 1);
 
-            float buildDefenseScore =
+            float defenseScore =
                 defensiveBuildingNeed *
                 aiProfile.DefenseMultiplier *
                 GetStrategyMultiplier(AIGoalType.BuildStructure, 2);
@@ -155,18 +155,17 @@ namespace RTS.AI.Behavior
             AIGoal buildHouseGoal = new AIGoal(playerInfo, AIGoalType.BuildStructure, houseScore);
             AIGoal buildBarrackGoal = new AIGoal(playerInfo, AIGoalType.BuildStructure, barrackScore);
             AIGoal buildSiegeGoal = new AIGoal(playerInfo, AIGoalType.BuildStructure, siegeScore);
+            AIGoal buildDefensiveGoal = new AIGoal(playerInfo, AIGoalType.BuildStructure, defenseScore);
 
             buildHouseGoal.SetBuilding(BuildingType.House);
             buildBarrackGoal.SetBuilding(BuildingType.Barracks);
             buildSiegeGoal.SetBuilding(BuildingType.SiegeWorkshop);
+            buildDefensiveGoal.SetBuilding(GetCurrentDefBuildingTypeNeeded());
 
             currentGoals.Add(buildHouseGoal);
             currentGoals.Add(buildBarrackGoal);
             currentGoals.Add(buildSiegeGoal);
-
-            currentGoals.Add(
-                new AIGoal(playerInfo, AIGoalType.BuildStructure, buildDefenseScore)
-                .SetBuilding(defBuildingTypeNeeded));
+            currentGoals.Add(buildDefensiveGoal);
         }
 
         #endregion
@@ -285,6 +284,7 @@ namespace RTS.AI.Behavior
             if (type == AIGoalType.TrainUnit && variant == 1) return 0.6f; //military
             if (type == AIGoalType.BuildStructure && variant == 0) return 1.5f; //economy building
             if (type == AIGoalType.BuildStructure && variant == 1) return 0.7f; //military building
+            if (type == AIGoalType.BuildStructure && variant == 2) return 1.2f; //defensive building
             if (type == AIGoalType.AssignScout && variant == 0) return 1.2f; //resource scout
             if (type == AIGoalType.AssignScout && variant == 1) return 0.6f; //enemy scout
             if (type == AIGoalType.LaunchAttackWave) return 0.4f;
@@ -351,23 +351,20 @@ namespace RTS.AI.Behavior
             return Mathf.Clamp01(1f - ratio);
         }
 
-        private float CalculateMilitaryBuildingNeed()
-        {
-            int militaryBuildings = dataManager.GetMilitaryBuildingCount();
-            int idealMilitaryBuildings = dataManager.GetIdealMilitaryBuildingCount();
-            // add isDependedByOther, if true, then increase the score
-
-            return Mathf.Clamp01(1f - (float)militaryBuildings / idealMilitaryBuildings);
-        }
-
         private float CalculateDefensiveBuildingNeed()
         {
-            float enemyThreat = dataManager.GetEnemyThreatLevel();
-            float baseDefense = dataManager.GetBaseDefenseLevel();
+            // Military Power Ratio
+            float militaryPowerRatio = dataManager.GetEstimatedMilitaryPowerRatio();
+            float militaryPowerScore = 1f - militaryPowerRatio;
 
-            if (baseDefense == 0) return 1f;
+            // Building Count Ratio
+            float nonDefensiveBuildingCount = dataManager.GetNonDefensiveBuildingCount();
+            float buildingCountScore = nonDefensiveBuildingCount / idealBuildingPerDefensiveBuildingCount;
 
-            return Mathf.Clamp01(enemyThreat / baseDefense);
+            // Percentage of available resources (settle condition for build defensive building)
+            float buildingResourceNeedsRatio = dataManager.CalculateRatioResourceAmountNeeds(BuildingType.CannonTower, idealResourceRatioForBuild);
+
+            return (militaryPowerScore + buildingCountScore + buildingResourceNeedsRatio) / 3;
         }
 
         private float CalculateResearchNeed()
@@ -489,12 +486,15 @@ namespace RTS.AI.Behavior
 
         private BuildingType GetCurrentDefBuildingTypeNeeded()
         {
-            /*float threatDirection = dataManager.GetHighestThreatDirection();
+            int selectIndex = Random.Range(1, 2);
 
-            if (threatDirection < 0.5f)
-                return BuildingType.Wall;*/
-
-            return BuildingType.GuardTower; // Placeholder for debug & monitoring purpose
+            if (selectIndex == 1)
+            {
+                return BuildingType.GuardTower;
+            }else
+            {
+                return BuildingType.CannonTower;
+            }
         }
 
         private ResearchType GetCurrentResearchTypeNeeded()
