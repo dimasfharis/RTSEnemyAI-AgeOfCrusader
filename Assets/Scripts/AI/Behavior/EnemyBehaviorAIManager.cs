@@ -33,6 +33,9 @@ namespace RTS.AI.Behavior
 
         private float idealBuildingPerDefensiveBuildingCount = 3f;
 
+        private float idealUnitNeedsToPrioritizeTrainGoal = 8f;
+        private float idealResourceRatioForTrain = 1.3f;
+
         #region Initialization
 
         public EnemyBehaviorAIManager(PlayerInfo owner, AIManager aiManager)
@@ -87,24 +90,22 @@ namespace RTS.AI.Behavior
                 GetStrategyMultiplier(AIGoalType.TrainUnit, 0);
 
             float militaryScore =
-                militaryNeed *
-                aiProfile.MilitaryMultiplier *
-                GetStrategyMultiplier(AIGoalType.TrainUnit, 1);
+                militaryNeed
+                * aiProfile.MilitaryMultiplier
+                * GetStrategyMultiplier(AIGoalType.TrainUnit, 1);
 
             AIGoal trainWorkerGoal = new AIGoal(playerInfo, AIGoalType.TrainUnit, workerScore);
             trainWorkerGoal.SetUnitTrainingRequirements(new Dictionary<UnitType, int> { { UnitType.Worker, 1 } });
             currentGoals.Add(trainWorkerGoal);
 
             if (goalCoordinator.unitRequests.Count > 0)
-                currentGoals.AddRange(GetMilitaryGoalMultiplied(militaryScore));
+                currentGoals.AddRange(GetMultipleMilitaryUnitTrainGoal(militaryScore));
         }
 
-        private List<AIGoal> GetMilitaryGoalMultiplied(float baseScore)
+        private List<AIGoal> GetMultipleMilitaryUnitTrainGoal(float baseScore)
         {
             if (goalCoordinator.unitRequests.Count <= 0)
-            {
-                return null;
-            }
+                return new List<AIGoal>();
 
             List<AIGoal> militaryGoals = new List<AIGoal>();
 
@@ -340,15 +341,19 @@ namespace RTS.AI.Behavior
 
         private float CalculateMilitaryNeed()
         {
+            // Estimated power ratio
             float ourPower = dataManager.GetOurMilitaryPower();
-            float enemyPower = dataManager.GetEstimatedEnemyMilitaryPower();
-            // add isDependedByOther, if true, then increase the score
+            float enemyPower = dataManager.GetEstimatedEnemyMilitaryPower() != 0f ? dataManager.GetEstimatedEnemyMilitaryPower() : 0.01f;
+            float powerRatio = ourPower / enemyPower;
 
-            if (enemyPower == 0) return 0.3f;
+            // Ratio of military unit needs
+            int trainUnitsCount = dataManager.GetTotalUnitNeedsCount();
+            float unitNeedsScore = trainUnitsCount / idealUnitNeedsToPrioritizeTrainGoal;
 
-            float ratio = ourPower / enemyPower;
+            // Ratio of bare minimum of available resources to train
+            float unitResourceNeedsRatio = dataManager.CalculateRatioPrioritizedUnitNeedsResourceAmountNeeds(idealResourceRatioForTrain);
 
-            return Mathf.Clamp01(1f - ratio);
+            return powerRatio * unitNeedsScore * unitResourceNeedsRatio;
         }
 
         private float CalculateDefensiveBuildingNeed()

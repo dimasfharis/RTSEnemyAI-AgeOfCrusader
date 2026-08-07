@@ -196,13 +196,29 @@ namespace RTS.Data
 
         #region Unit Training
 
+        public int GetTotalUnitNeedsCount()
+        {
+            if (goalCoordinator == null)
+                goalCoordinator = playerInfo.AIManager.GetEnemyBehaviorAIManager().GetGoalCoordinator();
+
+            var requestsDict = goalCoordinator.unitRequests;
+
+            if (requestsDict == null)
+                return 0;
+
+            return requestsDict.Values
+                .Where(u => u.unitRequests != null)
+                .SelectMany(u => u.unitRequests.Values)
+                .Sum();
+        }
+
         public int GetTrainUnitNeedsCount(BuildingType buildingType)
         {
             if (goalCoordinator == null)
                 goalCoordinator = playerInfo.AIManager.GetEnemyBehaviorAIManager().GetGoalCoordinator();
 
             var trainableUnits = buildingDatabase.GetTrainableUnits(buildingType);
-            var unitRequests = goalCoordinator.GetUnitRequest();
+            var unitRequests = goalCoordinator.unitRequests;
 
             if (trainableUnits == null || unitRequests == null)
                 return 0;
@@ -211,6 +227,35 @@ namespace RTS.Data
                 .SelectMany(u => u.unitRequests)
                 .Where(kvp => trainableUnits.Contains(kvp.Key))
                 .Sum(kvp => kvp.Value);
+        }
+
+        public float CalculateRatioPrioritizedUnitNeedsResourceAmountNeeds(float idealResourceRatioForTrain)
+        {
+            int count = 0;
+            float finalRatio = 0f;
+
+            Dictionary<UnitType, int> unitNeeds = goalCoordinator.GetHighestGoalScoreUnitNeeds();
+            List<ResourceAmount> resourceNeeds = resourceManager.GetProductionResourceAmount(unitNeeds);
+
+            if (resourceNeeds == null || resourceNeeds.Count == 0)
+                return 0f;
+
+            foreach (var resource in resourceNeeds)
+            {
+                if (resource.amount <= 0)
+                    continue;
+
+                count++;
+
+                int ourResourceAmount = resourceManager.GetAmount(resource.resourceType);
+
+                finalRatio += (float)ourResourceAmount / (resource.amount * idealResourceRatioForTrain);
+            }
+
+            if (count == 0)
+                return 0f;
+
+            return finalRatio / count;
         }
 
         #endregion

@@ -1,5 +1,6 @@
 using RTS.AI.Behavior;
 using RTS.Common.Enums;
+using RTS.Common.Structs;
 using RTS.Core;
 using RTS.Managers;
 using System;
@@ -35,6 +36,8 @@ namespace RTS.AI.GoalManagement
 
         // ===== Requirement Fullfillment =====
         public Dictionary<AIGoal, UnitsRequest> unitRequests;
+        private float checkForInactiveGoalTime;
+        private float checkForInactiveGoalInterval = 2f;
         // check for this unitRequests use (are they request it properly)
 
         // notes
@@ -72,6 +75,8 @@ namespace RTS.AI.GoalManagement
         {
             GoalGeneratingTick();
             GoalExecutorTick();
+
+            CheckForInactiveGoal();
         }
 
         private void GoalGeneratingTick()
@@ -231,6 +236,7 @@ namespace RTS.AI.GoalManagement
 
         #region Requirement Fulfillment
 
+        // check the references here. are all of goals is request? if not yet, then request it
         public void AddUnitRequest(AIGoal goal, Dictionary<UnitType, int> unitRequests)
         {
             if (this.unitRequests.ContainsKey(goal))
@@ -241,6 +247,59 @@ namespace RTS.AI.GoalManagement
             {
                 this.unitRequests.Add(goal, new UnitsRequest(unitRequests));
             }
+        }
+
+        private void CheckForInactiveGoal()
+        {
+            checkForInactiveGoalTime += Time.deltaTime;
+
+            if (checkForInactiveGoalTime > checkForInactiveGoalInterval)
+            {
+                checkForInactiveGoalTime = 0f;
+
+                List<AIGoal> goalsToRemove = new List<AIGoal>();
+
+                foreach (var request in unitRequests)
+                {
+                    if (request.Key.IsCompleted)
+                    {
+                        goalsToRemove.Add(request.Key);
+                    }
+                }
+
+                foreach (var goal in goalsToRemove)
+                {
+                    DeleteUnitRequest(goal);
+                }
+            }
+        }
+
+        private void DeleteUnitRequest(AIGoal goalUnitRequestToBeDeleted)
+        {
+            unitRequests.Remove(goalUnitRequestToBeDeleted);
+        }
+
+        public Dictionary<UnitType, int> GetHighestGoalScoreUnitNeeds()
+        {
+            if (unitRequests.Count == 0)
+                return default;
+
+            Dictionary<UnitType, int> unitRequest = new Dictionary<UnitType, int>();
+            float highestGoalScore = float.MinValue;
+
+            foreach (var request in unitRequests)
+            {
+                if (request.Key.IsCompleted)
+                    continue;
+
+                if (request.Key.Score > highestGoalScore)
+                {
+                    highestGoalScore = request.Key.Score;
+                    unitRequest = request.Value.unitRequests;
+                }
+            }
+
+            return unitRequest;
         }
 
         #endregion
@@ -296,11 +355,6 @@ namespace RTS.AI.GoalManagement
         public List<AIGoal> GetActiveGoals()
         {
             return activeGoals;
-        }
-
-        public Dictionary<AIGoal, UnitsRequest> GetUnitRequest()
-        {
-            return unitRequests;
         }
 
         #endregion
