@@ -51,7 +51,7 @@ namespace RTS.AI.GoalManagement
 
             this.behaviorManager = behaviorManager;
 
-            productionExecutor = new ProductionGoalExecutor(playerInfo);
+            productionExecutor = new ProductionGoalExecutor(playerInfo, this);
             buildExecutor = new BuildGoalExecutor(playerInfo);
             researchExecutor = new ResearchGoalExecutor(playerInfo);
             militaryExecutor = new MilitaryGoalExecutor(playerInfo, this);
@@ -337,9 +337,9 @@ namespace RTS.AI.GoalManagement
 
         #region Getter
 
-        public ProductionGoalExecutor GetProductionGoalExecutor()
+        public EnemyBehaviorAIManager GetEnemyBehaviorAIManager()
         {
-            return productionExecutor;
+            return behaviorManager;
         }
 
         public BuildGoalExecutor GetBuildGoalExecutor()

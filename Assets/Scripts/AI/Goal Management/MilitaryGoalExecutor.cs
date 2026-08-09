@@ -4,7 +4,6 @@ using RTS.Common.DataClass;
 using RTS.Common.Enums;
 using RTS.Core;
 using RTS.Data;
-using RTS.Data.StrategicData;
 using RTS.Managers;
 using RTS.Managers.Map;
 using RTS.Units.Common;
@@ -220,6 +219,8 @@ namespace RTS.AI.GoalManagement
 
                 Dictionary<UnitType, int> requiredUnits = GetRecommendedUnit(goal.GoalType);
                 goalCoordinator.AddUnitRequest(goal, requiredUnits);
+
+                Debug.Log($"Player {playerInfo.PlayerNumber} Request unit composition to {goal.GoalType}");
             }
         }
 
@@ -368,6 +369,8 @@ namespace RTS.AI.GoalManagement
 
                 Dictionary<UnitType, int> requiredUnits = GetRecommendedUnit(goal.GoalType);
                 goalCoordinator.AddUnitRequest(goal, requiredUnits);
+
+                Debug.Log($"Player {playerInfo.PlayerNumber} Request unit composition to {goal.GoalType}");
             }
         }
 
@@ -440,8 +443,6 @@ namespace RTS.AI.GoalManagement
             return recommendedUnits;
         }
 
-        // for threshold only, improve it in further time
-
         private Dictionary<UnitType, int> GetUnitCompositionScout()
         {
             Dictionary<UnitType, int> recommendedUnits = new Dictionary<UnitType, int>();
@@ -455,28 +456,22 @@ namespace RTS.AI.GoalManagement
         {
             Dictionary<UnitType, int> recommendedUnits = new Dictionary<UnitType, int>();
 
-            recommendedUnits.Add(UnitType.Militia, 4);
-            recommendedUnits.Add(UnitType.Archer, 3);
+            recommendedUnits.Add(UnitType.Swordsman, 1);
+            recommendedUnits.Add(UnitType.Crossbowman, 1);
 
             return recommendedUnits;
         }
 
         private Dictionary<UnitType, int> GetUnitCompositionReinforceDefense()
         {
-            Dictionary<UnitType, int> recommendedUnits = new Dictionary<UnitType, int>();
-
-            recommendedUnits.Add(UnitType.Militia, 8);
-            recommendedUnits.Add(UnitType.Archer, 6);
+            Dictionary<UnitType, int> recommendedUnits = dataManager.GetTrainUnitComposition();
 
             return recommendedUnits;
         }
 
         private Dictionary<UnitType, int> GetUnitCompositionLaunchAttackWave()
         {
-            Dictionary<UnitType, int> recommendedUnits = new Dictionary<UnitType, int>();
-
-            recommendedUnits.Add(UnitType.Militia, 12);
-            recommendedUnits.Add(UnitType.Archer, 9);
+            Dictionary<UnitType, int> recommendedUnits = dataManager.GetTrainUnitComposition();
 
             return recommendedUnits;
         }

@@ -478,10 +478,10 @@ namespace RTS.Core
             switch (playerInfo.PlayerNumber)
             {
                 case 1:
-                    InitiateDebugPlayer1(playerInfo);
+                    //InitiateDebugPlayer1(playerInfo);
                     break;
                 case 2:
-                    InitiateDebugPlayer2(playerInfo);
+                    //InitiateDebugPlayer2(playerInfo);
                     break;
                 default:
                     Debug.LogWarning($"No debug initiation for player {playerInfo.PlayerNumber}");

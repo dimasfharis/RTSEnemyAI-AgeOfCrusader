@@ -237,9 +237,29 @@ namespace RTS.Managers
             UpdateResourceChanged();
         }
 
+        public int GetTotalResource()
+        {
+            int totalResource = 0;
+
+            foreach (var resource in resources)
+            {
+                totalResource += resource.Value;
+            }
+
+            return totalResource;
+        }
+
         #endregion
 
         #region Population
+
+        public bool IsPopulationExceedingToTrain(int unitNeeds)
+        {
+            if (currentPopulation + unitNeeds >= populationCapacity)
+                return true;
+
+            return false;
+        }
 
         public bool IsPopulationFull()
         {

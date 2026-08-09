@@ -7,6 +7,7 @@ using RTS.Buildings.Data;
 using RTS.Common.Enums;
 using RTS.Common.Structs;
 using RTS.Core;
+using RTS.Data.StrategicData;
 using RTS.Managers;
 using RTS.Managers.Map;
 using RTS.Managers.Research;
@@ -175,6 +176,11 @@ namespace RTS.Data
             return resourceManagementAIManager.GetPopulationCapacityAmountNeeds();
         }
 
+        public int GetTotalResource()
+        {
+            return resourceManager.GetTotalResource();
+        }
+
         #endregion
 
         #region Building
@@ -260,6 +266,90 @@ namespace RTS.Data
 
         #endregion
 
+        #region Unit Training Composition
+
+        Dictionary<UnitType, UnitType> unitCounter = new Dictionary<UnitType, UnitType>()
+        {
+            { UnitType.Militia, UnitType.Archer },
+            { UnitType.Swordsman, UnitType.Crossbowman },
+            { UnitType.Archer, UnitType.Mangonel },
+            { UnitType.Crossbowman, UnitType.Mangonel },
+            { UnitType.Mangonel, UnitType.Scorpion },
+            { UnitType.Scorpion, UnitType.Militia }
+        };
+
+        public Dictionary<UnitType, int> GetTrainUnitComposition()
+        {
+            Dictionary<UnitType, int> unitComposition = new Dictionary<UnitType, int>();
+            Dictionary<UnitType, float> enemyRatio = GetEnemyUnitCompositionRatio();
+            int possibleUnitTrainCount = GetPossibleUnitTrainCount();
+
+            if (possibleUnitTrainCount == 0 || enemyRatio.Count == 0)
+                return unitComposition;
+
+            Dictionary<UnitType, float> exactCounterNeeds = new Dictionary<UnitType, float>();
+
+            foreach (var kvp in enemyRatio)
+            {
+                UnitType enemyType = kvp.Key;
+                float ratio = kvp.Value;
+
+                if (unitCounter.TryGetValue(enemyType, out UnitType counterType))
+                {
+                    if (!exactCounterNeeds.ContainsKey(counterType))
+                        exactCounterNeeds[counterType] = 0;
+
+                    exactCounterNeeds[counterType] += ratio * possibleUnitTrainCount;
+                }
+            }
+
+            int remainingUnits = possibleUnitTrainCount;
+
+            foreach (var kvp in exactCounterNeeds)
+            {
+                int amount = Mathf.FloorToInt(kvp.Value);
+                unitComposition[kvp.Key] = amount;
+                remainingUnits -= amount;
+            }
+
+            if (remainingUnits > 0 && unitComposition.Count > 0)
+            {
+                UnitType firstKey = unitComposition.Keys.First();
+                unitComposition[firstKey] += remainingUnits;
+            }
+
+            return unitComposition;
+        }
+
+        public Dictionary<UnitType, float> GetEnemyUnitCompositionRatio()
+        {
+            List<EnemyUnitMemory> knownEnemyUnits = mapManager.GetKnownEnemyUnits().Values.ToList();
+            Dictionary<UnitType, float> knownEnemyUnitCompositionRatio = new Dictionary<UnitType, float>();
+
+            if (knownEnemyUnits.Count == 0)
+                return knownEnemyUnitCompositionRatio;
+
+            knownEnemyUnitCompositionRatio = knownEnemyUnits
+                .GroupBy(u => u.UnitType)
+                .ToDictionary(
+                g => g.Key,
+                g => (float)g.Count() / knownEnemyUnits.Count);
+
+            return knownEnemyUnitCompositionRatio;
+        }
+
+        public int GetPossibleUnitTrainCount()
+        {
+            int idealResourceNeedPerUnitTrainCost = 30;
+
+            int ourTotalResource = GetTotalResource();
+            int availableResource = Mathf.FloorToInt(0.6f * ourTotalResource);
+
+            return availableResource / idealResourceNeedPerUnitTrainCost;
+        }
+
+        #endregion
+
         #region Defense
 
         public float GetEstimatedMilitaryPowerRatio()
@@ -337,6 +427,17 @@ namespace RTS.Data
             defenseDirection.Normalize();
 
             BaseBuildingController outerBuildingInDirection = mapManager.GetOuterBuildingInDirection(townhallPosition, defenseDirection);
+
+            if (outerBuildingInDirection == null)
+            {
+                int townhallLength = buildingDatabase.GetBuildingTemplate(BuildingType.TownCenter).length;
+                int townhallWidth = buildingDatabase.GetBuildingTemplate(BuildingType.TownCenter).width;
+                Vector3 townHallCenter = townhallPosition + new Vector3(townhallLength / 2, townhallWidth / 2);
+
+                Vector3 townHallOffset = townHallCenter + defenseDirection * (townhallLength + 3);
+
+                return townHallOffset;
+            }
 
             return outerBuildingInDirection.transform.position;
         }

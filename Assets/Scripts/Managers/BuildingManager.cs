@@ -286,6 +286,22 @@ namespace RTS.Managers
 
         #region Required Unit Production Building
 
+        public List<BuildingType> GetRequiredProductionBuildingTypes(Dictionary<UnitType, int> unitComposition)
+        {
+            List<BuildingType> buildingTypes = new List<BuildingType>();
+
+            if (unitComposition == null ||  unitComposition.Count == 0)
+                return buildingTypes;
+
+            foreach (var unit in unitComposition)
+            {
+                BuildingType type = playerInfo.DataManager.unitDatabase.GetRequiredBuilding(unit.Key);
+                buildingTypes.Add(type);
+            }
+
+            return buildingTypes;
+        }
+
         public List<BaseBuildingController> GetRequiredProductionBuildings(Dictionary<UnitType, int> unitComposition)
         {
             List<BaseBuildingController> productionBuildings = new List<BaseBuildingController>();

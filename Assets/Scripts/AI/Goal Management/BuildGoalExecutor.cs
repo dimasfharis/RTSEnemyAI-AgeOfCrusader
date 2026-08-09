@@ -163,6 +163,9 @@ namespace RTS.AI.GoalManagement
 
                 BaseBuildingController outerBuildingInDirection = mapManager.GetOuterBuildingInDirection(baseRef, defenseDirection);
 
+                if (outerBuildingInDirection == null)
+                    outerBuildingInDirection = buildingManager.GetBuilding(BuildingType.TownCenter);
+
                 Vector3 buildPosition = mapManager.FindBuildablePositionNear(aiGoal.BuildingType, outerBuildingInDirection.transform.position, scanRadius, defenseDirection);
 
                 TryExecuteBuild(aiGoal, buildPosition);

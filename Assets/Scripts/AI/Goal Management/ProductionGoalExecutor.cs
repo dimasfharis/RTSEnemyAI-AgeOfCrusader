@@ -5,6 +5,8 @@ using RTS.Core;
 using RTS.Data;
 using RTS.Managers;
 using System.Collections.Generic;
+using System.Linq;
+using UnityEngine;
 
 namespace RTS.AI.GoalManagement
 {
@@ -14,15 +16,19 @@ namespace RTS.AI.GoalManagement
         private ResourceManager resourceManager;
         private DataManager dataManager;
         private BuildingManager buildingManager;
+        private GoalCoordinator goalCoordinator;
+        private EnemyBehaviorAIManager enemyBehaviorAIManager;
 
         #region Initialization
 
-        public ProductionGoalExecutor(PlayerInfo owner)
+        public ProductionGoalExecutor(PlayerInfo owner, GoalCoordinator goalCoordinator)
         {
             playerInfo = owner;
             resourceManager = owner.ResourceManager;
             dataManager = owner.DataManager;
             buildingManager = owner.BuildingManager;
+            this.goalCoordinator = goalCoordinator;
+            enemyBehaviorAIManager = goalCoordinator.GetEnemyBehaviorAIManager();
         }
 
         #endregion
@@ -40,10 +46,7 @@ namespace RTS.AI.GoalManagement
 
         public void Execute(AIGoal goal)
         {
-            if (goal.GoalType != AIGoalType.TrainUnit)
-                return;
-
-            if (goal.IsCompleted)
+            if (goal.IsCompleted || goal.GoalType != AIGoalType.TrainUnit)
                 return;
 
             if (!CanExecute(goal))
@@ -65,26 +68,43 @@ namespace RTS.AI.GoalManagement
             if (!buildingManager.HasRequiredProductionBuilding(goal.UnitTrainingRequirements))
                 return false;
 
+            // Check if the population is exceeding to train unit
+            int totalUnitNeeds = goal.UnitTrainingRequirements.Values.Sum();
+            if (resourceManager.IsPopulationExceedingToTrain(totalUnitNeeds))
+                return false;
+
             return true;
         }
 
         private void FulfillRequirements(AIGoal goal)
         {
+            // fulfill required building production
             if (!buildingManager.HasRequiredProductionBuilding(goal.UnitTrainingRequirements))
             {
-                // inform EnemyBehaviorAIManager to prioritize building needed
-                // set building needed isDependedByOther true
-                // for this train worker goal phase, just leave it this way
-                // do for later military unit train goal
+                // set building needed isDependedByOther
+                List<BuildingType> buildingProductionTypes = buildingManager.GetRequiredProductionBuildingTypes(goal.UnitTrainingRequirements);
+                enemyBehaviorAIManager.SetBuildGoalDependency(buildingProductionTypes, goal);
+
+                Debug.Log($"Player {playerInfo.PlayerNumber} Request military building to {goal.GoalType}");
             }
 
             // fulfill population capacity if not yet fulfilled
+            int totalUnitNeeds = goal.UnitTrainingRequirements.Values.Sum();
+            if (resourceManager.IsPopulationExceedingToTrain(totalUnitNeeds))
+            {
+                enemyBehaviorAIManager.SetBuildGoalDependency(BuildingType.House, goal);
+
+                Debug.Log($"Player {playerInfo.PlayerNumber} Request house building to {goal.GoalType}");
+            }
         }
 
         private bool TryExecuteTrain(AIGoal goal)
         {
-            // Get Building to train
+            // Get unit composition to train
             Dictionary<UnitType, int> unitComposition = goal.UnitTrainingRequirements;
+
+            // Unset goal dependency
+            enemyBehaviorAIManager.UnsetBuildGoalDependency(goal);
 
             // Unit Production Check
             foreach (var unit in unitComposition)

@@ -6,6 +6,7 @@ using RTS.AI.Decision;
 using RTS.Data;
 using System.Linq;
 using RTS.AI.GoalManagement;
+using System;
 
 namespace RTS.AI.Behavior
 {
@@ -36,6 +37,9 @@ namespace RTS.AI.Behavior
         private float idealUnitNeedsToPrioritizeTrainGoal = 8f;
         private float idealResourceRatioForTrain = 1.3f;
 
+        // Goal Dependency
+        private Dictionary<BuildingType, AIGoal> buildGoalDepended;
+
         #region Initialization
 
         public EnemyBehaviorAIManager(PlayerInfo owner, AIManager aiManager)
@@ -46,6 +50,9 @@ namespace RTS.AI.Behavior
             dataManager = owner.DataManager;
 
             goalCoordinator = new GoalCoordinator(playerInfo, this);
+
+            buildGoalDepended = new Dictionary<BuildingType, AIGoal>();
+            GoalDependencyInit();
         }
 
         #endregion
@@ -452,7 +459,6 @@ namespace RTS.AI.Behavior
         #endregion
 
         #region Building Needs
-        // need more code polishing
 
         private float CalculateHouseBuildingNeed()
         {
@@ -462,7 +468,10 @@ namespace RTS.AI.Behavior
 
             int ourHouseAmount = dataManager.GetBuildingCount(BuildingType.House);
 
-            return 1f - (ourHouseAmount / (idealHouseAmount + 1)); // +1 to prevent divided by zero
+            // Check if depended by other goal
+            float dependedScore = buildGoalDepended[BuildingType.House] != null ? 1.3f : 1f;
+
+            return (1f - (ourHouseAmount / (idealHouseAmount + 1))) * dependedScore; // +1 to prevent divided by zero
         }
 
         private float CalculateBarrackBuildingNeed()
@@ -474,7 +483,10 @@ namespace RTS.AI.Behavior
             int trainUnitNeedsCount = dataManager.GetTrainUnitNeedsCount(BuildingType.Barracks);
             float trainUnitNeedsScore = trainUnitNeedsCount / idealUnitNeedsAmountToBuild;
 
-            return buildingResourceNeedsRatio * trainUnitNeedsScore;
+            // Check if depended by other goal
+            float dependedScore = buildGoalDepended[BuildingType.Barracks] != null ? 1.3f : 1f;
+
+            return buildingResourceNeedsRatio * trainUnitNeedsScore * dependedScore;
         }
 
         private float CalculateSiegeWorkshopNeed()
@@ -486,12 +498,15 @@ namespace RTS.AI.Behavior
             int trainUnitNeedsCount = dataManager.GetTrainUnitNeedsCount(BuildingType.SiegeWorkshop);
             float trainUnitNeedsScore = trainUnitNeedsCount / idealUnitNeedsAmountToBuild;
 
-            return buildingResourceNeedsRatio * trainUnitNeedsScore;
+            // Check if depended by other goal
+            float dependedScore = buildGoalDepended[BuildingType.SiegeWorkshop] != null ? 1.3f : 1f;
+
+            return buildingResourceNeedsRatio * trainUnitNeedsScore * dependedScore;
         }
 
         private BuildingType GetCurrentDefBuildingTypeNeeded()
         {
-            int selectIndex = Random.Range(1, 2);
+            int selectIndex = UnityEngine.Random.Range(1, 3);
 
             if (selectIndex == 1)
             {
@@ -542,6 +557,51 @@ namespace RTS.AI.Behavior
             Vector3 defensePosition = dataManager.GetBaseDefensePosition();
 
             aiGoal.SetTargetPosition(defensePosition);
+        }
+
+        #endregion
+
+        #region Goal Dependency
+
+        private void GoalDependencyInit()
+        {
+            foreach (BuildingType buildingType in Enum.GetValues(typeof(BuildingType)))
+            {
+                if (buildingType == BuildingType.None)
+                    continue;
+
+                buildGoalDepended[buildingType] = null;
+            }
+        }
+
+        public void SetBuildGoalDependency(List<BuildingType> buildingType, AIGoal aiGoal)
+        {
+            if (buildingType == null)
+                return;
+
+            foreach (var type in buildingType)
+            {
+                SetBuildGoalDependency(type, aiGoal);
+            }
+        }
+
+        public void SetBuildGoalDependency(BuildingType buildingType, AIGoal aiGoal)
+        {
+            buildGoalDepended[buildingType] = aiGoal;
+        }
+
+        public void UnsetBuildGoalDependency(AIGoal aiGoal)
+        {
+            if (aiGoal == null)
+                return;
+
+            foreach (var buildGoal in buildGoalDepended)
+            {
+                if (buildGoal.Value == aiGoal)
+                {
+                    SetBuildGoalDependency(buildGoal.Key, null);
+                }
+            }
         }
 
         #endregion
