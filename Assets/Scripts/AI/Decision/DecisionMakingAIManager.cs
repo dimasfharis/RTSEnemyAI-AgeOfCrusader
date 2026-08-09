@@ -131,7 +131,7 @@ namespace RTS.AI.Decision
         private float GetNormalizedResource()
         {
             return Mathf.Clamp01(
-                playerInfo.DataManager.GetTotalResourceStockpile() / 2000f);
+                playerInfo.DataManager.GetTotalResource() / 2000f);
         }
 
         private float GetNormalizedIncome()

@@ -103,18 +103,18 @@ namespace RTS.Data
             return totalPower;
         }
 
+        public int GetOurMilitaryUnitAvailable()
+        {
+            return militaryUnitManager.GetAvailableUnits().Count;
+        }
+
         #endregion
 
         #region Economy & Resource
 
-        public float GetTotalResourceStockpile()
+        public int GetTotalResource()
         {
-            int food = resourceManager.GetAmount(ResourceType.Food);
-            int wood = resourceManager.GetAmount(ResourceType.Wood);
-            int gold = resourceManager.GetAmount(ResourceType.Gold);
-            int stone = resourceManager.GetAmount(ResourceType.Stone);
-
-            return food + wood + gold + stone;
+            return resourceManager.GetTotalResource();
         }
 
         public float GetResourceIncomeRate()
@@ -174,11 +174,6 @@ namespace RTS.Data
                 resourceManagementAIManager = playerInfo.AIManager.GetResourceManagementAIManager();
 
             return resourceManagementAIManager.GetPopulationCapacityAmountNeeds();
-        }
-
-        public int GetTotalResource()
-        {
-            return resourceManager.GetTotalResource();
         }
 
         #endregion
@@ -486,18 +481,17 @@ namespace RTS.Data
             return Mathf.Clamp01(Time.time / maxTime);
         }
 
-        public float GetElapsedTimeSinceLastScout()
+        public float GetElapsedTimeSinceLastGoalExecuted(AIGoalType goalType)
         {
-            float recentTime = Time.time;
-
             if (goalCoordinator == null)
                 goalCoordinator = playerInfo.AIManager.GetEnemyBehaviorAIManager().GetGoalCoordinator();
 
-            AIGoal latestScoutGoal = goalCoordinator.GetLatestGoalExecuted(AIGoalType.AssignScout);
+            AIGoal latestGoalExecuted = goalCoordinator.GetLatestGoalExecuted(goalType);
 
-            float latestScoutExecutedTime = latestScoutGoal != null ? latestScoutGoal.timeExecuted : 0f;
+            float latestGoalExecutedTime = latestGoalExecuted != null ? latestGoalExecuted.timeExecuted : 0f;
 
-            return recentTime - latestScoutExecutedTime;
+            float recentTime = Time.time;
+            return recentTime - latestGoalExecutedTime;
         }
 
         public float GetTechProgressNormalized()
@@ -546,11 +540,11 @@ namespace RTS.Data
             return new Vector3(chosenTile.x, chosenTile.y, 0);
         }
 
-        public Vector3 GetTilesAroundEnemyBaseRandomly()
+        public Vector3 GetTilesAroundEnemyBaseRandomly(float radius)
         {
             List<PlayerInfo> enemyPlayerInfo = playerInfo.GameManager.GetOpponentPlayerInfo(playerInfo.PlayerNumber);
             Vector3 enemyBasePosition = enemyPlayerInfo[0].BuildingManager.GetBuilding(BuildingType.TownCenter).transform.position;
-            List<Vector2Int> tilesAround = mapManager.GetTilesAround(enemyBasePosition, 10f);
+            List<Vector2Int> tilesAround = mapManager.GetTilesAround(enemyBasePosition, radius);
 
             // Make sure the tile is within the map
             Tilemap groundTilemap = worldManager.tileDatabase.GetGroundTilemap();
@@ -724,7 +718,7 @@ namespace RTS.Data
             {
                 if (enemyUnit.Value.UnitType == UnitType.Worker)
                 {
-                    if (Vector3.Distance(enemyUnit.Key, knownEnemyBasePosition) > 20f)
+                    if (Vector3.Distance(enemyUnit.Key, knownEnemyBasePosition) > 15f)
                     {
                         exposedEnemyWorkers++;
                     }

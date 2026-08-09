@@ -1,4 +1,5 @@
 using RTS.AI.Behavior;
+using RTS.AI.Micromanagement;
 using RTS.Buildings.Common;
 using RTS.Common.DataClass;
 using RTS.Common.Enums;
@@ -21,6 +22,7 @@ namespace RTS.AI.GoalManagement
         private MilitaryUnitManager militaryUnitManager;
         private DataManager dataManager;
         private MapManager mapManager;
+        private MicromanagementAIManager micromanagementAIManager;
 
         private Dictionary<AIGoal, MilitaryGroup> activeGroups;
         private List<AIGoal> goalsToRemove;
@@ -30,8 +32,9 @@ namespace RTS.AI.GoalManagement
         // Requirement Parameters
         private int requiredUnitsForScout = 2;
         private int requiredTilesForScout = 300;
-        private int requiredUnitsForDefense = 6;
+        private int requiredUnitsForDefense = 8;
         private int requiredDefenseTime = 45;
+        private int requiredUnitsForHarassment = 3;
 
         // Timer
         private float defenseGoalTimer;
@@ -94,10 +97,12 @@ namespace RTS.AI.GoalManagement
 
         private void CheckRemovedGoals()
         {
-            for (int i = 0; i < goalsToRemove.Count; i++)
+            foreach (var goal in goalsToRemove)
             {
-                activeGroups.Remove(goalsToRemove[i]);
+                activeGroups.Remove(goal);
             }
+
+            goalsToRemove.Clear();
         }
 
         #endregion
@@ -112,7 +117,7 @@ namespace RTS.AI.GoalManagement
             switch (goal.GoalType)
             {
                 case AIGoalType.LaunchAttackWave:
-                    //ExecuteAttackWave(goal);
+                    ExecuteAttackWave(goal);
                     break;
 
                 case AIGoalType.AssignScout:
@@ -120,7 +125,7 @@ namespace RTS.AI.GoalManagement
                     break;
 
                 case AIGoalType.AssignHarassment:
-                    //ExecuteHarassment(goal);
+                    ExecuteHarassment(goal);
                     break;
 
                 case AIGoalType.ReinforceDefense:
@@ -133,31 +138,94 @@ namespace RTS.AI.GoalManagement
 
         #region Attack Wave
 
-        private void ExecuteAttackWave(AIGoal goal)
+        private void ExecuteAttackWave(AIGoal aiGoal)
         {
-            if (!activeGroups.ContainsKey(goal))
+            if (!CanExecuteAttack(aiGoal))
             {
-                InitAttackWaveGroup(goal);
+                FulfillAttackRequirements(aiGoal);
+                return;
             }
 
-            MilitaryGroup group = activeGroups[goal];
-
-            if (!group.isEngaged)
+            if (!activeGroups.ContainsKey(aiGoal))
             {
-                // militaryUnitManager.IssueMoveCommand(group.Units, group.TargetPosition);
+                InitAttackGroup(aiGoal);
+                aiGoal.StartExecute();
 
-                group.isEngaged = true;
+                aiGoal.OnExecuteStarted += Attack_OnExecuteStarted;
+                aiGoal.OnCompleted += Attack_OnCompleted;
             }
         }
 
         private void AttackWaveTick(AIGoal aiGoal)
         {
+            if (CanExecuteAttack(aiGoal) && !aiGoal.IsExecuteStarted && !aiGoal.IsCompleted)
+            {
+                InitAttackGroup(aiGoal);
+                aiGoal.StartExecute();
+
+                aiGoal.OnExecuteStarted += Attack_OnExecuteStarted;
+                aiGoal.OnCompleted += Attack_OnCompleted;
+            }
+        }
+
+        private bool CanExecuteAttack(AIGoal aiGoal)
+        {
+            // Check if unit amount required is fulfilled
+
+            return true;
+        }
+
+        private void FulfillAttackRequirements(AIGoal aiGoal)
+        {
 
         }
 
-        private void InitAttackWaveGroup(AIGoal goal)
+        private void InitAttackGroup(AIGoal aiGoal)
         {
-            // InitializeGroup(goal);
+            List<MilitaryUnitController> availableUnits = militaryUnitManager.GetAvailableUnits();
+
+            MilitaryGroup group = new MilitaryGroup(availableUnits.Cast<BaseUnitController>().ToList(), playerInfo, aiGoal)
+            {
+                targetPosition = aiGoal.TargetPosition,
+                militaryGroupMode = MilitaryGroupMode.AttackWave
+            };
+
+            foreach (var unit in availableUnits)
+            {
+                unit.activatedGoal = aiGoal;
+                aiGoal.AssignedUnits.Add(unit);
+            }
+
+            // Assembly group
+            Vector3 assemblyPosition = group.GetMeanPositionOfReinforces();
+            militaryUnitManager.IssueMoveCommand(group.units, assemblyPosition);
+
+            activeGroups.Add(aiGoal, group);
+
+            // send the group to micromanagementAIManager
+            if (micromanagementAIManager == null)
+                micromanagementAIManager = playerInfo.AIManager.GetMicromanagementAIManager();
+
+            micromanagementAIManager.AddMilitaryGroup(group);
+        }
+
+        private void Attack_OnExecuteStarted(AIGoal aiGoal)
+        {
+
+        }
+
+        private void Attack_OnCompleted(AIGoal aiGoal)
+        {
+            aiGoal.UnlinkRelations();
+
+            if (micromanagementAIManager == null)
+                micromanagementAIManager = playerInfo.AIManager.GetMicromanagementAIManager();
+            micromanagementAIManager.RemoveMilitaryGroup(activeGroups[aiGoal]);
+
+            activeGroups[aiGoal].OnGroupDisbanded();
+            goalsToRemove.Add(aiGoal);
+
+            // Send report log later
         }
 
         #endregion
@@ -274,62 +342,116 @@ namespace RTS.AI.GoalManagement
 
         #region Harassment
 
-        private void ExecuteHarassment(AIGoal goal)
+        private void ExecuteHarassment(AIGoal aiGoal)
         {
-            if (!activeGroups.ContainsKey(goal))
+            if (!CanExecuteHarassment(aiGoal))
             {
-                InitHarassmentGroup(goal);
+                FulfillHarassmentRequirements(aiGoal);
+                return;
             }
 
-            MilitaryGroup group = activeGroups[goal];
-
-            Vector3 ecoTarget = dataManager.GetEstimatedExposedEnemyWorkerPosition();
-
-            if (!group.isEngaged)
+            if (!activeGroups.ContainsKey(aiGoal))
             {
-                // militaryUnitManager.IssueMoveCommand(group.Units, ecoTarget);
+                InitHarassmentGroup(aiGoal);
+                aiGoal.StartExecute();
+
+                aiGoal.OnExecuteStarted += Harassment_OnExecutedStarted;
+                aiGoal.OnCompleted += Harassment_OnCompleted;
             }
         }
 
         private void HarassmentTick(AIGoal aiGoal)
         {
+            if (CanExecuteHarassment(aiGoal) && !aiGoal.IsExecuteStarted && !aiGoal.IsCompleted)
+            {
+                InitHarassmentGroup(aiGoal);
+                aiGoal.StartExecute();
+
+                aiGoal.OnExecuteStarted += Harassment_OnExecutedStarted;
+                aiGoal.OnCompleted += Harassment_OnCompleted;
+            }
+        }
+
+        private bool CanExecuteHarassment(AIGoal aiGoal)
+        {
+            // Check if unit amount required is fulfilled
+
+            return true;
+        }
+
+        private void FulfillHarassmentRequirements(AIGoal aiGoal)
+        {
 
         }
 
-        private void InitHarassmentGroup(AIGoal goal)
+        private void InitHarassmentGroup(AIGoal aiGoal)
         {
-            //InitializeGroup(goal);
+            List<MilitaryUnitController> availableUnits = militaryUnitManager.GetAvailableUnits();
+
+            List<MilitaryUnitController> assignedUnits = availableUnits
+                .Take(requiredUnitsForHarassment)
+                .ToList();
+
+            MilitaryGroup group = new MilitaryGroup(assignedUnits.Cast<BaseUnitController>().ToList(), playerInfo, aiGoal)
+            {
+                targetPosition = aiGoal.TargetPosition,
+            };
+
+            foreach (var unit in assignedUnits)
+            {
+                unit.activatedGoal = aiGoal;
+                aiGoal.AssignedUnits.Add(unit);
+            }
+
+            // Command attack move
+            militaryUnitManager.IssueAttackMoveCommand(group.units, aiGoal.TargetPosition);
+
+            activeGroups.Add(aiGoal, group);
+        }
+
+        private void Harassment_OnExecutedStarted(AIGoal aIGoal)
+        {
+
+        }
+
+        private void Harassment_OnCompleted(AIGoal aiGoal)
+        {
+            aiGoal.UnlinkRelations();
+            activeGroups[aiGoal].OnGroupDisbanded();
+            goalsToRemove.Add(aiGoal);
+
+            // Send report log later
         }
 
         #endregion
 
         #region Reinforce Defense
 
-        private void ExecuteReinforceDefense(AIGoal goal)
+        private void ExecuteReinforceDefense(AIGoal aiGoal)
         {
-            if (!CanExecuteDefense(goal))
+            if (!CanExecuteDefense(aiGoal))
             {
-                FulfillDefenseRequirements(goal);
+                FulfillDefenseRequirements(aiGoal);
                 return;
             }
 
-            if (!activeGroups.ContainsKey(goal))
+            if (!activeGroups.ContainsKey(aiGoal))
             {
-                InitDefenseGroup(goal);
-                goal.OnExecuteStarted += Defense_OnExecuteStarted;
-                goal.OnCompleted += Defense_OnCompleted;
+                InitDefenseGroup(aiGoal);
+                aiGoal.OnExecuteStarted += Defense_OnExecuteStarted;
+                aiGoal.OnCompleted += Defense_OnCompleted;
             }
         }
 
-        private void ReinforceDefenseTick(AIGoal goal)
+        private void ReinforceDefenseTick(AIGoal aiGoal)
         {
-            if (CanExecuteDefense(goal) && !goal.IsExecuteStarted && !goal.IsCompleted)
+            if (CanExecuteDefense(aiGoal) && !aiGoal.IsExecuteStarted && !aiGoal.IsCompleted)
             {
-                DefenseStartExecute(goal);
-                goal.StartExecute();
+                DefenseStartExecute(aiGoal);
+                aiGoal.StartExecute();
             }
 
-            if (goal.IsExecuteStarted)
+            if (aiGoal.IsExecuteStarted)
             {
                 defenseGoalTimer += Time.deltaTime;
 
@@ -337,16 +459,16 @@ namespace RTS.AI.GoalManagement
                 {
                     defenseGoalInterval++;
 
-                    goal.AddProgress(1);
+                    aiGoal.AddProgress(1);
                 }
             }
         }
 
-        private void DefenseStartExecute(AIGoal goal)
+        private void DefenseStartExecute(AIGoal aiGoal)
         {
-            MilitaryGroup group = activeGroups[goal];
+            MilitaryGroup group = activeGroups[aiGoal];
 
-            Vector3 defensePoint = goal.TargetPosition;
+            Vector3 defensePoint = aiGoal.TargetPosition;
 
             if (!group.isEngaged)
             {
@@ -356,7 +478,7 @@ namespace RTS.AI.GoalManagement
 
         private bool CanExecuteDefense(AIGoal goal)
         {
-            // Check if there are duplicated defense goal
+            // Check if unit amount required is fulfilled
 
             return true;
         }
@@ -457,7 +579,7 @@ namespace RTS.AI.GoalManagement
             Dictionary<UnitType, int> recommendedUnits = new Dictionary<UnitType, int>();
 
             recommendedUnits.Add(UnitType.Swordsman, 1);
-            recommendedUnits.Add(UnitType.Crossbowman, 1);
+            recommendedUnits.Add(UnitType.Crossbowman, 2);
 
             return recommendedUnits;
         }

@@ -22,10 +22,10 @@ namespace RTS.AI.Behavior
         private List<AIGoal> currentGoals = new List<AIGoal>();
 
         // Ideal Value
-        private float idealGoalScoutExecuteInterval = 30f;
+        private float idealGoalScoutExecuteInterval = 25f;
         private float idealResourceNeedsPerResourceNode = 15f;
 
-        private float idealUnitAmountToLaunchAttack = 25f;
+        private float idealUnitAmountToLaunchAttack = 17f;
         private float idealUnitAmountSoCalledLaunchAttack = 7f;
 
         private float idealPopulationPerHouse = 4f;
@@ -36,6 +36,11 @@ namespace RTS.AI.Behavior
 
         private float idealUnitNeedsToPrioritizeTrainGoal = 8f;
         private float idealResourceRatioForTrain = 1.3f;
+
+        private float idealGoalAttackExecuteInterval = 120f;
+        private float idealResourceTotalForAttack = 200f;
+
+        private float idealUnitAmountToHarass = 7f;
 
         // Goal Dependency
         private Dictionary<BuildingType, AIGoal> buildGoalDepended;
@@ -202,21 +207,21 @@ namespace RTS.AI.Behavior
 
         private void EvaluateMilitaryGoals()
         {
-            float attackOpportunity = CalculateAttackOpportunity();
+            float attackNeed = CalculateAttackNeed();
             float resourceScoutNeed = CalculateResourceScoutNeed();
             float enemyScoutNeed = CalculateEnemyScoutNeed();
             float harassmentNeed = CalculateHarassmentNeed();
             float defenseNeed = CalculateDefenseNeed();
 
             float attackScore =
-                attackOpportunity *
-                aiProfile.AttackMultiplier *
-                GetStrategyMultiplier(AIGoalType.LaunchAttackWave);
+                attackNeed
+                * aiProfile.AttackMultiplier
+                * GetStrategyMultiplier(AIGoalType.LaunchAttackWave);
 
             float resourceScoutScore =
-                resourceScoutNeed *
-                aiProfile.ScoutMultiplier *
-                GetStrategyMultiplier(AIGoalType.AssignScout, 0);
+                resourceScoutNeed
+                * aiProfile.ScoutMultiplier
+                * GetStrategyMultiplier(AIGoalType.AssignScout, 0);
 
             float enemyScoutScore =
                 enemyScoutNeed
@@ -224,34 +229,36 @@ namespace RTS.AI.Behavior
                 * GetStrategyMultiplier(AIGoalType.AssignScout, 1);
 
             float harassmentScore =
-                harassmentNeed *
-                aiProfile.HarassMultiplier *
-                GetStrategyMultiplier(AIGoalType.AssignHarassment);
+                harassmentNeed
+                * aiProfile.HarassMultiplier
+                * GetStrategyMultiplier(AIGoalType.AssignHarassment);
 
             float defenseScore =
-                defenseNeed *
-                aiProfile.DefenseMultiplier *
-                GetStrategyMultiplier(AIGoalType.ReinforceDefense);
+                defenseNeed
+                * aiProfile.DefenseMultiplier
+                * GetStrategyMultiplier(AIGoalType.ReinforceDefense);
 
-            currentGoals.Add(
-                new AIGoal(playerInfo, AIGoalType.LaunchAttackWave, attackScore));
-
+            AIGoal aiGoalAttack = new AIGoal(playerInfo, AIGoalType.LaunchAttackWave, attackScore);
             AIGoal aiGoalResourceScout = new AIGoal(playerInfo, AIGoalType.AssignScout, resourceScoutScore);
             AIGoal aiGoalEnemyScout = new AIGoal(playerInfo, AIGoalType.AssignScout, enemyScoutScore);
-
-            currentGoals.Add(aiGoalResourceScout);
-            currentGoals.Add(aiGoalEnemyScout);
-
-            currentGoals.Add(
-                new AIGoal(playerInfo, AIGoalType.AssignHarassment, harassmentScore));
-
+            AIGoal aiGoalHarassment = new AIGoal(playerInfo, AIGoalType.AssignHarassment, harassmentScore);
             AIGoal aiGoalDefense = new AIGoal(playerInfo, AIGoalType.ReinforceDefense, defenseScore);
 
+            currentGoals.Add(aiGoalAttack);
+            currentGoals.Add(aiGoalResourceScout);
+            currentGoals.Add(aiGoalEnemyScout);
+            currentGoals.Add(aiGoalHarassment);
             currentGoals.Add(aiGoalDefense);
 
-            // Determine scout target location
+            // Determine attack target position
+            SetAttackTargetPosition(aiGoalAttack);
+
+            // Determine scout target position
             SetResourceScoutTargetPosition(aiGoalResourceScout);
             SetEnemyScoutTargetPosition(aiGoalEnemyScout);
+
+            // Determine harassment target position
+            SetHarassmentTargetPosition(aiGoalHarassment);
 
             // Determine reinforce defense position
             SetBaseDefensePosition(aiGoalDefense);
@@ -335,10 +342,8 @@ namespace RTS.AI.Behavior
         private float CalculateWorkerNeed()
         {
             int currentWorkers = dataManager.GetWorkerCount();
-            int idealWorkers = dataManager.GetIdealWorkerCount();
+            int idealWorkers = dataManager.GetIdealWorkerCount() == 0 ? 1 : dataManager.GetIdealWorkerCount();
             // add isDependedByOther, if true, then increase the score
-
-            if (idealWorkers == 0) return 0f;
 
             float ratio = (float)currentWorkers / idealWorkers;
             // sometimes, idealWorkers is 0, because 0 resource needs
@@ -381,22 +386,37 @@ namespace RTS.AI.Behavior
 
         private float CalculateResearchNeed()
         {
-            float gameTime = dataManager.GetGameTimeNormalized();
+            return 0f;
+
+            /*float gameTime = dataManager.GetGameTimeNormalized();
             float techProgress = dataManager.GetTechProgressNormalized();
 
-            return Mathf.Clamp01(gameTime - techProgress);
+            return Mathf.Clamp01(gameTime - techProgress);*/
         }
 
-        private float CalculateAttackOpportunity()
+        private float CalculateAttackNeed()
         {
+            // Level of AI economy
+            int ourTotalResource = dataManager.GetTotalResource();
+            float resourceRatioScore = ourTotalResource / idealResourceTotalForAttack;
+
+            // Ideal of military unit count
+            int availableMilitaryUnit = dataManager.GetOurMilitaryUnitAvailable();
+            float militaryUnitCountScore = availableMilitaryUnit / idealUnitAmountToLaunchAttack;
+
+            // Percentage of known enemy info towards actual enemy info
+            float enemyInfoPercentage = 1f - dataManager.GetKnownEnemyInfoPercentage();
+
+            // Estimated power ratio
             float ourPower = dataManager.GetOurMilitaryPower();
-            float enemyPower = dataManager.GetEstimatedEnemyMilitaryPower();
+            float enemyPower = dataManager.GetEstimatedEnemyMilitaryPower() != 0f ? dataManager.GetEstimatedEnemyMilitaryPower() : 20f;
+            float powerRatio = ourPower / enemyPower;
 
-            if (enemyPower == 0) return 1f;
+            // Ideal time since last attack
+            float latestAttackGoalExecutedTime = dataManager.GetElapsedTimeSinceLastGoalExecuted(AIGoalType.LaunchAttackWave);
+            float attackGoalExecutedTimeRatio = latestAttackGoalExecutedTime / idealGoalAttackExecuteInterval;
 
-            float ratio = ourPower / enemyPower;
-
-            return Mathf.Clamp01(ratio - 1f);
+            return (resourceRatioScore + militaryUnitCountScore + (enemyInfoPercentage * powerRatio) + attackGoalExecutedTimeRatio) / 4;
         }
 
         private float CalculateResourceScoutNeed()
@@ -414,7 +434,7 @@ namespace RTS.AI.Behavior
             float mapControl = 1f - dataManager.GetMapControlValue();
 
             // Ideal time since last map scout
-            float latestScoutGoalExecutedTime = dataManager.GetElapsedTimeSinceLastScout();
+            float latestScoutGoalExecutedTime = dataManager.GetElapsedTimeSinceLastGoalExecuted(AIGoalType.AssignScout);
             float scoutGoalExecutedTimeRatio = latestScoutGoalExecutedTime / idealGoalScoutExecuteInterval;
 
             return knownResourceNodeRatio * knownResourceNodeTowardsAllRatio * mapControl * scoutGoalExecutedTimeRatio;
@@ -426,7 +446,7 @@ namespace RTS.AI.Behavior
             float enemyInfoPercentage = 1f - dataManager.GetKnownEnemyInfoPercentage();
 
             // Ideal time since last enemy scout
-            float latestScoutGoalExecutedTime = dataManager.GetElapsedTimeSinceLastScout();
+            float latestScoutGoalExecutedTime = dataManager.GetElapsedTimeSinceLastGoalExecuted(AIGoalType.AssignScout);
             float scoutGoalExecutedTimeRatio = latestScoutGoalExecutedTime / idealGoalScoutExecuteInterval;
 
             return enemyInfoPercentage * scoutGoalExecutedTimeRatio;
@@ -434,8 +454,14 @@ namespace RTS.AI.Behavior
 
         private float CalculateHarassmentNeed()
         {
+            // Ideal of military unit count
+            int availableMilitaryUnit = dataManager.GetOurMilitaryUnitAvailable();
+            float militaryUnitCountScore = availableMilitaryUnit / idealUnitAmountToHarass;
+
+            // Estimated enemy worker exposed from base position
             float EnemyEcoExposure = dataManager.GetEnemyEcoExposureNormalized();
-            return Mathf.Clamp01(EnemyEcoExposure);
+
+            return militaryUnitCountScore * EnemyEcoExposure;
         }
 
         private float CalculateDefenseNeed()
@@ -529,9 +555,19 @@ namespace RTS.AI.Behavior
 
         #region Goal Target Determination
 
+        private void SetAttackTargetPosition(AIGoal aiGoal)
+        {
+            if (aiGoal == null || aiGoal.GoalType != AIGoalType.LaunchAttackWave)
+                return;
+
+            Vector3 aroundEnemyBaseTile = dataManager.GetTilesAroundEnemyBaseRandomly(10f);
+
+            aiGoal.SetTargetPosition(aroundEnemyBaseTile);
+        }
+
         private void SetResourceScoutTargetPosition(AIGoal aiGoal)
         {
-            if (aiGoal == null)
+            if (aiGoal == null || aiGoal.GoalType != AIGoalType.AssignScout)
                 return;
 
             Vector3 unknownTile = dataManager.GetUnexploredTilesRandomly();
@@ -541,17 +577,27 @@ namespace RTS.AI.Behavior
 
         private void SetEnemyScoutTargetPosition(AIGoal aiGoal)
         {
-            if (aiGoal == null)
+            if (aiGoal == null || aiGoal.GoalType != AIGoalType.AssignScout)
                 return;
 
-            Vector3 aroundEnemyBaseTile = dataManager.GetTilesAroundEnemyBaseRandomly();
+            Vector3 aroundEnemyBaseTile = dataManager.GetTilesAroundEnemyBaseRandomly(18f);
+
+            aiGoal.SetTargetPosition(aroundEnemyBaseTile);
+        }
+
+        private void SetHarassmentTargetPosition(AIGoal aiGoal)
+        {
+            if (aiGoal == null || aiGoal.GoalType != AIGoalType.AssignHarassment)
+                return;
+
+            Vector3 aroundEnemyBaseTile = dataManager.GetTilesAroundEnemyBaseRandomly(15f);
 
             aiGoal.SetTargetPosition(aroundEnemyBaseTile);
         }
 
         private void SetBaseDefensePosition(AIGoal aiGoal)
         {
-            if (aiGoal == null)
+            if (aiGoal == null || aiGoal.GoalType != AIGoalType.ReinforceDefense)
                 return;
 
             Vector3 defensePosition = dataManager.GetBaseDefensePosition();

@@ -14,6 +14,7 @@ namespace RTS.AI.Micromanagement
     {
         private PlayerInfo playerInfo;
         private MilitaryUnitManager militaryUnitManager;
+
         private List<MilitaryGroup> militaryGroups = new List<MilitaryGroup>();
 
         #region Initialization
@@ -48,15 +49,6 @@ namespace RTS.AI.Micromanagement
 
         #region Group Reinforcement
 
-        public void ReinforceAttackWave(Vector3 fromPosition, float radius, Vector3 targetPosition)
-        {
-            MilitaryGroup militaryGroup = ReinforceGroupByArea(fromPosition, radius);
-            militaryGroup.militaryGroupMode = MilitaryGroupMode.AttackWave;
-            militaryGroup.targetPosition = targetPosition;
-
-            AssemblyGroup(militaryGroup);
-        }
-
         public MilitaryGroup ReinforceGroupByArea(Vector3 fromPosition, float radius)
         {
             List<MilitaryUnitController> unitsInRadius = militaryUnitManager.GetUnitsInRadius(fromPosition, radius);
@@ -66,15 +58,20 @@ namespace RTS.AI.Micromanagement
             return newGroup;
         }
 
-        #endregion
-
-        #region Group Movement
-
-        public void AssemblyGroup(MilitaryGroup militaryGroup)
+        public void AddMilitaryGroup(MilitaryGroup newGroup)
         {
-            Vector3 assemblyPosition = militaryGroup.GetMeanPositionOfReinforces();
+            if (militaryGroups.Contains(newGroup))
+                return;
 
-            militaryUnitManager.IssueMoveCommand(militaryGroup.units, assemblyPosition);
+            militaryGroups.Add(newGroup);
+        }
+
+        public void RemoveMilitaryGroup(MilitaryGroup group)
+        {
+            if (!militaryGroups.Contains(group))
+                return;
+
+            militaryGroups.Remove(group);
         }
 
         #endregion

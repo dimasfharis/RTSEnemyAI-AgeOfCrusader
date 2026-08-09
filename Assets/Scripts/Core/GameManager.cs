@@ -123,6 +123,31 @@ namespace RTS.Core
 
         #endregion
 
+        #region Do Harassment
+
+        [SerializeField] private DoHarassment doHarassment;
+
+        [System.Serializable]
+        public struct DoHarassment
+        {
+            public int playerNumber;
+            public Vector3 targetPosition;
+        }
+
+        [ContextMenu("Do Harassment")]
+        public void TestDoHarassment()
+        {
+            PlayerInfo playerInfo = Players[doHarassment.playerNumber];
+            MilitaryGoalExecutor militaryGoalExecutor = playerInfo.AIManager.GetEnemyBehaviorAIManager().GetGoalCoordinator().GetMilitaryGoalExecutor();
+
+            AIGoal goal = new AIGoal(playerInfo, AIGoalType.AssignHarassment, 0f);
+            goal.SetTargetPosition(doHarassment.targetPosition);
+
+            militaryGoalExecutor.Execute(goal);
+        }
+
+        #endregion
+
         #region Reinforce Wave Attack
 
         [SerializeField] private ReinforceAttackWave reinforceAttackWave;
@@ -131,8 +156,6 @@ namespace RTS.Core
         public struct ReinforceAttackWave
         {
             public int playerNumber;
-            public Vector3 fromPosition;
-            public float radius;
             public Vector3 targetPosition;
         }
 
@@ -140,11 +163,12 @@ namespace RTS.Core
         public void TestReinforceWaveAttack()
         {
             PlayerInfo playerInfo = Players[reinforceAttackWave.playerNumber];
+            MilitaryGoalExecutor militaryGoalExecutor = playerInfo.AIManager.GetEnemyBehaviorAIManager().GetGoalCoordinator().GetMilitaryGoalExecutor();
 
-            playerInfo.AIManager.GetMicromanagementAIManager().ReinforceAttackWave(
-                reinforceAttackWave.fromPosition,
-                reinforceAttackWave.radius,
-                reinforceAttackWave.targetPosition);
+            AIGoal goal = new AIGoal(playerInfo, AIGoalType.LaunchAttackWave, 0f);
+            goal.SetTargetPosition(reinforceAttackWave.targetPosition);
+
+            militaryGoalExecutor.Execute(goal);
         }    
 
         #endregion
@@ -478,7 +502,7 @@ namespace RTS.Core
             switch (playerInfo.PlayerNumber)
             {
                 case 1:
-                    //InitiateDebugPlayer1(playerInfo);
+                    InitiateDebugPlayer1(playerInfo);
                     break;
                 case 2:
                     //InitiateDebugPlayer2(playerInfo);
@@ -494,7 +518,7 @@ namespace RTS.Core
             BaseBuildingController barrack = InitiateBuilding(playerInfo, BuildingType.Barracks, new Vector3(25, 15, 0));
 
             InitiateUnit(playerInfo, UnitType.Militia, barrack, 8);
-            //InitiateUnit(playerInfo, UnitType.Archer, barrack, 12);
+            InitiateUnit(playerInfo, UnitType.Archer, barrack, 12);
         }
 
         private void InitiateDebugPlayer2(PlayerInfo playerInfo)
