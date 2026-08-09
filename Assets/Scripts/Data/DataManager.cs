@@ -508,6 +508,16 @@ namespace RTS.Data
 
         #region Map Control
 
+        public int GetExploredTiles()
+        {
+            return mapManager.GetExploredTiles().Count(x => x.Value > 0f);
+        }
+
+        public int GetTotalTiles()
+        {
+            return mapManager.GetExploredTiles().Count;
+        }
+
         public float GetMapControlValue()
         {
             int knownTiles = mapManager.GetExploredTiles().Count(x => x.Value > 0f);
@@ -605,7 +615,7 @@ namespace RTS.Data
 
         #region Enemy Military Unit
 
-        private int GetActualEnemyMilitaryUnitCount()
+        public int GetActualEnemyMilitaryUnitCount()
         {
             int totalUnits = 0;
             var opponentsUnit = worldManager.GetAllOpponentUnits(playerInfo);
@@ -676,7 +686,7 @@ namespace RTS.Data
 
         #region Enemy Worker Unit
 
-        private int GetActualEnemyWorkerCount()
+        public int GetActualEnemyWorkerCount()
         {
             int totalUnits = 0;
             var opponentsUnit = worldManager.GetAllOpponentUnits(playerInfo);
@@ -752,7 +762,7 @@ namespace RTS.Data
 
         #region Enemy Building
 
-        private int GetActualEnemyBuildingCount()
+        public int GetActualEnemyBuildingCount()
         {
             int totalBuildings = 0;
             var opponentsBuilding = worldManager.GetAllOpponentBuildings(playerInfo);

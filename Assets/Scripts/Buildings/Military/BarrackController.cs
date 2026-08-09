@@ -1,6 +1,7 @@
 using RTS.Buildings.Common;
-using RTS.Common.Enums;
 using RTS.Buildings.Common.Interfaces;
+using RTS.Common.Enums;
+using RTS.Managers.Log;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
@@ -83,6 +84,10 @@ namespace RTS.Buildings.Military
                 SpawnUnit(currentType);
 
                 OnUnitTrained.Invoke(currentType);
+
+                // Log to building feature
+                PlayerLogManager logManager = playerInfo.PlayerLogManager;
+                logManager.LogBuildingFeature($"({Time.time}) {buildingInfo.buildingType} has just train {currentType}");
             }
         }
 

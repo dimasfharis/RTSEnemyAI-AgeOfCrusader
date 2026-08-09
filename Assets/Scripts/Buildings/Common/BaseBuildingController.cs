@@ -1,18 +1,19 @@
-using UnityEngine;
-using RTS.Core;
 using RTS.Buildings.Common.States;
 using RTS.Buildings.Data;
 using RTS.Common.Enums;
-using RTS.Units.Data;
+using RTS.Core;
 using RTS.Data.StrategicData;
+using RTS.Managers;
+using RTS.Managers.Log;
+using RTS.Managers.Map;
 using RTS.Units.Common;
-using RTS.World.ResourceNodeManagement;
-using System.Collections.Generic;
+using RTS.Units.Data;
 using RTS.Units.Military;
 using RTS.Units.Worker;
+using RTS.World.ResourceNodeManagement;
 using System;
-using RTS.Managers;
-using RTS.Managers.Map;
+using System.Collections.Generic;
+using UnityEngine;
 
 namespace RTS.Buildings.Common
 {
@@ -154,6 +155,10 @@ namespace RTS.Buildings.Common
             buildingInfo.isActive = true;
 
             playerInfo.BuildingManager.RegisterBuilding(this);
+
+            // Log to unit feature
+            PlayerLogManager logManager = playerInfo.PlayerLogManager;
+            logManager.LogUnitFeature($"({Time.time}) has just build {buildingInfo.buildingType}");
         }
 
         public virtual void OnBuildingDestroyedAction()

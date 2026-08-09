@@ -4,6 +4,7 @@ using RTS.Buildings.Common;
 using RTS.Common.Enums;
 using RTS.Buildings.Common.Interfaces;
 using System;
+using RTS.Managers.Log;
 
 namespace RTS.Buildings.Economic
 {
@@ -107,6 +108,10 @@ namespace RTS.Buildings.Economic
                 SpawnWorker();
 
                 OnUnitTrained.Invoke(currentUnit);
+
+                // Log to building feature
+                PlayerLogManager logManager = playerInfo.PlayerLogManager;
+                logManager.LogBuildingFeature($"({Time.time}) {buildingInfo.buildingType} has just train {currentUnit}");
             }
         }
 
