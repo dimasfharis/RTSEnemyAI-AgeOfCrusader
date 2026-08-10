@@ -1,8 +1,10 @@
-using UnityEngine;
-using RTS.Core;
+using RTS.Buildings.Common;
 using RTS.Common.Enums;
-using System.Collections.Generic;
+using RTS.Core;
+using RTS.Managers.Log;
 using System;
+using System.Collections.Generic;
+using UnityEngine;
 
 namespace RTS.AI.Decision
 {
@@ -21,6 +23,7 @@ namespace RTS.AI.Decision
 
         [Header("Debug & Monitoring Purpose")]
         private Dictionary<AIStrategyMode, float> strategyModesCalculated = new Dictionary<AIStrategyMode, float>();
+        private AIStrategyMode latestStrategyMode = AIStrategyMode.None;
 
         #region Initialization
 
@@ -28,6 +31,8 @@ namespace RTS.AI.Decision
         {
             playerInfo = owner;
             aiProfile = aiProfileSO;
+
+            OnStrategyModeUpdated += LogPlayingStyleChanged;
         }
 
         #endregion
@@ -206,6 +211,20 @@ namespace RTS.AI.Decision
             strategyModesCalculated.Add(AIStrategyMode.Attack, attackScore);
             strategyModesCalculated.Add(AIStrategyMode.Defend, defendScore);
             strategyModesCalculated.Add(AIStrategyMode.Recovery, recoveryScore);
+        }
+
+        private void LogPlayingStyleChanged(Dictionary<AIStrategyMode, float> strategy, PlayerInfo owner)
+        {
+            if (GetCurrentAIStrategyMode() == latestStrategyMode)
+            {
+                return;
+            }
+
+            latestStrategyMode = GetCurrentAIStrategyMode();
+
+            PlayerLogManager playerLogManager = playerInfo.PlayerLogManager;
+
+            playerLogManager.LogPlayingStyle($"({Time.time}) playing style is changing to {GetCurrentAIStrategyMode()}");
         }
 
         #endregion

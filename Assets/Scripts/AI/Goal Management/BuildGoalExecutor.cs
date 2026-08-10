@@ -85,6 +85,10 @@ namespace RTS.AI.GoalManagement
 
             if (success)
             {
+                // Log to goal execution
+                PlayerLogManager logManager = playerInfo.PlayerLogManager;
+                logManager.LogGoalExecution($"({Time.time}) {goal.GoalType} has just executed");
+
                 goal.AddProgress(1);
                 return true;
             }

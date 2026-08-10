@@ -1,3 +1,5 @@
+using RTS.AI.Resources;
+using RTS.Common.Enums;
 using RTS.Core;
 using RTS.Data;
 using RTS.Monitoring.Log;
@@ -23,6 +25,7 @@ namespace RTS.Managers.Log
 
         // Update Simultaneous Data
         float updateSimultaneousDataTime;
+        float currentInterval = 15f;
         float updateSimultaneousDataInterval = 3f;
 
         #region Initialization
@@ -44,11 +47,14 @@ namespace RTS.Managers.Log
             UpdateMapExplorationLog();
 
             updateSimultaneousDataTime += Time.deltaTime;
-            if (updateSimultaneousDataTime > updateSimultaneousDataInterval)
+            if (updateSimultaneousDataTime >= currentInterval)
             {
                 updateSimultaneousDataTime = 0f;
+                currentInterval = updateSimultaneousDataInterval;
 
                 UpdateWorldAcknowledgeLog();
+                UpdateGatheringPriorityLog();
+                UpdatePlayerStatusData();
             }
         }
 
@@ -64,6 +70,16 @@ namespace RTS.Managers.Log
         public void LogBuildingFeature(string message)
         {
             AIMonitoringUI.Instance.LogBuildingFeature(playerInfo.PlayerNumber, message);
+        }
+
+        public void LogPlayingStyle(string message)
+        {
+            AIMonitoringUI.Instance.LogPlayingStyle(playerInfo.PlayerNumber, message);
+        }
+
+        public void LogGoalExecution(string message)
+        {
+            AIMonitoringUI.Instance.LogGoalExecution(playerInfo.PlayerNumber, message);
         }
 
         #endregion
@@ -96,6 +112,59 @@ namespace RTS.Managers.Log
                 { "Map Explored\n", $"{exploredTiles} : {totalTiles}\n" },
                 { "Resource Explored\n", $"{knownResource} : {totalResource}\n" },
                 { "Known Enemy Info\n", $"{totalKnown} : {totalActual}\n" },
+            });
+        }
+
+        public void UpdateGatheringPriorityLog()
+        {
+            ResourceManagementAIManager resourceManagementAIManager = playerInfo.AIManager.GetResourceManagementAIManager();
+
+            Dictionary<ResourceType, float> currentResourceNeedsRatio = resourceManagementAIManager.GetCurrentResourceNeedsRatio();
+
+            if (currentResourceNeedsRatio == null)
+                currentResourceNeedsRatio = new Dictionary<ResourceType, float>();
+
+            float woodRatio = currentResourceNeedsRatio.ContainsKey(ResourceType.Wood) ? currentResourceNeedsRatio[ResourceType.Wood] : 0f;
+            float goldRatio = currentResourceNeedsRatio.ContainsKey(ResourceType.Gold) ? currentResourceNeedsRatio[ResourceType.Gold] : 0f;
+            float stoneRatio = currentResourceNeedsRatio.ContainsKey(ResourceType.Stone) ? currentResourceNeedsRatio[ResourceType.Stone] : 0f;
+            float foodRatio = currentResourceNeedsRatio.ContainsKey(ResourceType.Food) ? currentResourceNeedsRatio[ResourceType.Food] : 0f;
+
+            AIMonitoringUI.Instance.UpdateGatheringPriorityData(playerInfo.PlayerNumber, new Dictionary<string, object>()
+            {
+                { "Wood", $"{woodRatio}" },
+                { "Gold", $"{goldRatio}" },
+                { "Stone", $"{stoneRatio}" },
+                { "Food", $"{foodRatio}" }
+            });
+        }
+
+        public void UpdatePlayerStatusData()
+        {
+            // Ideal Worker
+            int ourWorker = dataManager.GetWorkerCount();
+            int idealWorker = dataManager.GetIdealWorkerCount();
+
+            // Military Power
+            float ourPower = dataManager.GetOurMilitaryPower();
+
+            // Resource Need
+            int ourResource = dataManager.GetTotalResource();
+            int resourceNeed = dataManager.GetResourceNeedsAmount();
+
+            // Population Need
+            int ourPopulation = playerInfo.ResourceManager.GetCurrentPopulation();
+            int populationNeed = dataManager.GetPopulationCapacityAmountNeeds();
+
+            // Unit Need
+            int unitNeed = dataManager.GetTotalUnitNeedsCount();
+
+            AIMonitoringUI.Instance.UpdatePlayerStatusData(playerInfo.PlayerNumber, new Dictionary<string, object>()
+            {
+                { "Ideal Worker", $"{ourWorker}/{idealWorker}" },
+                { "Military Power", $"{ourPower}" },
+                { "Resource Need", $"{ourResource}/{resourceNeed}" },
+                { "Population Need", $"{ourPopulation}/{populationNeed}" },
+                { "Unit Need", $"{unitNeed}" },
             });
         }
 

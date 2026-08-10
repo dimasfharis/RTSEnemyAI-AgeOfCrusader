@@ -1,9 +1,11 @@
 using RTS.AI.Behavior;
 using RTS.Buildings.Common;
+using RTS.Buildings.Data;
 using RTS.Common.Enums;
 using RTS.Core;
 using RTS.Data;
 using RTS.Managers;
+using RTS.Managers.Log;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -119,6 +121,10 @@ namespace RTS.AI.GoalManagement
 
                     if (goal.currentProgress >= goal.targetAmount)
                     {
+                        // Log to goal execution
+                        PlayerLogManager logManager = playerInfo.PlayerLogManager;
+                        logManager.LogGoalExecution($"({Time.time}) {goal.GoalType} has just executed");
+
                         goal.MarkCompleted();
                         return true;
                     }

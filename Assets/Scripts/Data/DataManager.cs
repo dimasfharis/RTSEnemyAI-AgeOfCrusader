@@ -15,6 +15,7 @@ using RTS.Research.Data;
 using RTS.Units.Data;
 using RTS.World.ResourceNodeManagement;
 using RTS.World.WorldManagement;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -42,6 +43,8 @@ namespace RTS.Data
         public BuildingDatabase buildingDatabase;
         public ResearchDatabase researchDatabase;
         public AIProfileDatabase aiProfileDatabase;
+
+        private static readonly System.Random _random = new System.Random();
 
         #region Initialization
 
@@ -279,8 +282,13 @@ namespace RTS.Data
             Dictionary<UnitType, float> enemyRatio = GetEnemyUnitCompositionRatio();
             int possibleUnitTrainCount = GetPossibleUnitTrainCount();
 
-            if (possibleUnitTrainCount == 0 || enemyRatio.Count == 0)
+            if (possibleUnitTrainCount == 0)
                 return unitComposition;
+
+            if (enemyRatio.Count == 0)
+            {
+                return GetRandomUnitComposition(possibleUnitTrainCount);
+            }
 
             Dictionary<UnitType, float> exactCounterNeeds = new Dictionary<UnitType, float>();
 
@@ -341,6 +349,34 @@ namespace RTS.Data
             int availableResource = Mathf.FloorToInt(0.6f * ourTotalResource);
 
             return availableResource / idealResourceNeedPerUnitTrainCost;
+        }
+
+        private Dictionary<UnitType, int> GetRandomUnitComposition(int possibleTrainCount)
+        {
+            var composition = new Dictionary<UnitType, int>();
+
+            if (possibleTrainCount <= 0)
+                return composition;
+
+            var validUnits = Enum.GetValues(typeof(UnitType))
+                .Cast<UnitType>()
+                .Where(u => u != UnitType.None && u != UnitType.Worker)
+                .ToList();
+
+            for (int i = 0; i < possibleTrainCount; i++)
+            {
+                UnitType randomUnit = validUnits[_random.Next(validUnits.Count)];
+
+                if (composition.ContainsKey(randomUnit))
+                {
+                    composition[randomUnit]++;
+                }else
+                {
+                    composition[randomUnit] = 1;
+                }
+            }
+
+            return composition;
         }
 
         #endregion
@@ -544,7 +580,7 @@ namespace RTS.Data
             if (validTilesList.Count == 0)
                 return Vector3.zero;
 
-            int randomIndex = Random.Range(0, validTilesList.Count);
+            int randomIndex = UnityEngine.Random.Range(0, validTilesList.Count);
             Vector2Int chosenTile = validTilesList[randomIndex].Key;
             
             return new Vector3(chosenTile.x, chosenTile.y, 0);
@@ -562,7 +598,7 @@ namespace RTS.Data
                 .Where(x => groundTilemap.HasTile(new Vector3Int(x.x, x.y, 0)))
                 .ToList();
 
-            int randomIndex = Random.Range(0, validTilesList.Count);
+            int randomIndex = UnityEngine.Random.Range(0, validTilesList.Count);
             Vector2Int chosenTile = validTilesList[randomIndex];
 
             return new Vector3(chosenTile.x, chosenTile.y, 0);

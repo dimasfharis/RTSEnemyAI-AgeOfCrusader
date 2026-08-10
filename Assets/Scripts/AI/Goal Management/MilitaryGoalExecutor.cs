@@ -6,6 +6,7 @@ using RTS.Common.Enums;
 using RTS.Core;
 using RTS.Data;
 using RTS.Managers;
+using RTS.Managers.Log;
 using RTS.Managers.Map;
 using RTS.Units.Common;
 using RTS.Units.Military;
@@ -207,6 +208,10 @@ namespace RTS.AI.GoalManagement
                 micromanagementAIManager = playerInfo.AIManager.GetMicromanagementAIManager();
 
             micromanagementAIManager.AddMilitaryGroup(group);
+
+            // Log to goal execution
+            PlayerLogManager logManager = playerInfo.PlayerLogManager;
+            logManager.LogGoalExecution($"({Time.time}) {aiGoal.GoalType} has just executed");
         }
 
         private void Attack_OnExecuteStarted(AIGoal aiGoal)
@@ -314,6 +319,10 @@ namespace RTS.AI.GoalManagement
             goal.targetAmount = requiredTilesForScout;
 
             activeGroups.Add(goal, group);
+
+            // Log to goal execution
+            PlayerLogManager logManager = playerInfo.PlayerLogManager;
+            logManager.LogGoalExecution($"({Time.time}) {goal.GoalType} has just executed");
         }
 
         private void Scout_OnExecuteStarted(AIGoal aiGoal)
@@ -407,6 +416,10 @@ namespace RTS.AI.GoalManagement
             militaryUnitManager.IssueAttackMoveCommand(group.units, aiGoal.TargetPosition);
 
             activeGroups.Add(aiGoal, group);
+
+            // Log to goal execution
+            PlayerLogManager logManager = playerInfo.PlayerLogManager;
+            logManager.LogGoalExecution($"({Time.time}) {aiGoal.GoalType} has just executed");
         }
 
         private void Harassment_OnExecutedStarted(AIGoal aIGoal)
@@ -519,6 +532,10 @@ namespace RTS.AI.GoalManagement
             goal.targetAmount = requiredDefenseTime;
 
             activeGroups.Add(goal, group);
+
+            // Log to goal execution
+            PlayerLogManager logManager = playerInfo.PlayerLogManager;
+            logManager.LogGoalExecution($"({Time.time}) {goal.GoalType} has just executed");
         }
 
         private void Defense_OnExecuteStarted(AIGoal aiGoal)

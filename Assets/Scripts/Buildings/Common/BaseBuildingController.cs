@@ -2,7 +2,6 @@ using RTS.Buildings.Common.States;
 using RTS.Buildings.Data;
 using RTS.Common.Enums;
 using RTS.Core;
-using RTS.Data.StrategicData;
 using RTS.Managers;
 using RTS.Managers.Log;
 using RTS.Managers.Map;
